@@ -1,0 +1,30 @@
+import { BaseEntity } from 'src/base/base-entity';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+
+export type JobsSearchParams = {
+  tenantId? : number
+  entityReferenceId? : number
+  status?: JobStatus
+}
+
+export enum JobStatus {
+    Processing = 'processing',
+    Done = 'Done',
+    Failed = 'failed'
+}
+
+@Entity()
+export class Job extends BaseEntity {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  status: JobStatus
+ 
+  @Column()
+  entityReferenceId: number
+  
+  @Column()
+  tenantId: number
+
+}
