@@ -6,6 +6,7 @@ import { JobsService } from './jobs/jobs.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseConfig } from './database-config/database-config.interface';
 import { DatabaseConfigService } from './database-config/database-config.service';
+import { JobConfigurationsService } from './job-configurations/job-configurations.service';
 
 @Global()
 @Module({})
@@ -28,8 +29,8 @@ export class CoreModule {
         JobsModule,
       ],
       controllers: [AppController],
-      providers: [AppService, JobsService, DatabaseConfigService],
-      exports: [DatabaseConfigService, JobsService],
+      providers: [AppService, JobsService, JobConfigurationsService, DatabaseConfigService],
+      exports: [DatabaseConfigService, JobsService, JobConfigurationsService],
     };
   }
 }
