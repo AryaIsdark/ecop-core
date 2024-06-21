@@ -1,0 +1,5 @@
+export * from './dto'
+export * from './entities'
+export * from './products.service'
+export * from './products.module'
+export * from './products.controller'

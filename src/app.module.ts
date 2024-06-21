@@ -1,36 +1,46 @@
-import { Module, DynamicModule, Global} from '@nestjs/common';
+import { Module, DynamicModule, Global } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { JobsModule } from './jobs/jobs.module';
 import { JobsService } from './jobs/jobs.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { DatabaseConfig } from './database-config/database-config.interface';
 import { DatabaseConfigService } from './database-config/database-config.service';
 import { JobConfigurationsService } from './job-configurations/job-configurations.service';
+import { JobConfigurationsModule } from './job-configurations/job-configurations.module';
+import { DataSourceOptions } from 'typeorm';
+import { TestComponentModule } from './test-component/test-component.module';
+import { JobConfiguration } from './job-configurations';
+
 
 @Global()
-@Module({})
+@Module({
+  imports: [TestComponentModule]
+})
+
 export class CoreModule {
-  static forRoot(config: DatabaseConfig): DynamicModule {
+  static forRoot(dataSourceOptions: DataSourceOptions): DynamicModule {
     return {
       module: CoreModule,
       imports: [
         TypeOrmModule.forRoot({
-          type: config.type,
-          host: config.host,
-          port: config.port,
-          username: config.username,
-          password: config.password,
-          database: config.database,
-          entities: config.entities,
-          synchronize: config.synchronize,
-          migrations: config.migrations,
-        }),
-        JobsModule,
+          type: dataSourceOptions['type'] ,
+          synchronize: dataSourceOptions['synchronize'],
+          host: dataSourceOptions['host'],
+          port: dataSourceOptions['port'],
+          username: dataSourceOptions['username'],
+          password: dataSourceOptions['password'],
+          database: dataSourceOptions['database'],
+          entities: dataSourceOptions['entities'],
+          migrations: dataSourceOptions['migrations']
+        } as DataSourceOptions),
       ],
       controllers: [AppController],
-      providers: [AppService, JobsService, JobConfigurationsService, DatabaseConfigService],
-      exports: [DatabaseConfigService, JobsService, JobConfigurationsService],
+      providers: [
+        AppService,
+        DatabaseConfigService],
+      exports: [
+        DatabaseConfigService,
+      ],
     };
   }
 }

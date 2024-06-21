@@ -3,8 +3,6 @@ import { JobConfigurationsService } from './job-configurations.service';
 import { JobConfigurationsController } from './job-configurations.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobConfiguration } from './entities/job-configuration.entity';
-import { JobsModule } from 'src/jobs/jobs.module';
-
 @Module({
   imports: [TypeOrmModule.forFeature([JobConfiguration])],
   controllers: [JobConfigurationsController],
