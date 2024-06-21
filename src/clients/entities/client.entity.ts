@@ -1,8 +1,8 @@
-import { Product } from 'src/products/entities/product.entity';
+import { BaseEntity } from 'src/base/base-entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 @Entity()
-export class Client {
+export class Client extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
