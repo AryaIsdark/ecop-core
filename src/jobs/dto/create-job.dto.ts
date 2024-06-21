@@ -1,1 +1,3 @@
-export class CreateJobDto {}
+export class CreateJobDto {
+    jobConfigurationId: number
+}

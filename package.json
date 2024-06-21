@@ -1,6 +1,6 @@
 {
   "name": "ecop-core",
-  "version": "0.0.33",
+  "version": "0.0.35",
   "description": "",
   "author": "",
   "private": false,
@@ -28,9 +28,13 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/typeorm": "^10.0.2",
+    "axios": "^1.7.2",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.20",
+    "xlsx": "^0.18.5",
+    "xmldom": "^0.6.0",
+    "xpath": "^0.0.34"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",

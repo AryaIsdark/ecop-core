@@ -1,10 +1,16 @@
 import { Module } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Job } from './entities/job.entity';
+import { JobConfigurationsModule } from 'src/job-configurations/job-configurations.module';
+import { ProductsModule } from 'src/products/products.module';
+import { ProductSyncModule } from 'src/product-sync/product-sync.module';
 
 @Module({
+  imports: [TypeOrmModule.forFeature([Job]), ProductSyncModule, JobConfigurationsModule],
   controllers: [JobsController],
   providers: [JobsService],
-  exports : [JobsModule]
+  exports: [JobsService]
 })
-export class JobsModule {}
+export class JobsModule { }

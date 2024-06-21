@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
+import { JobsSearchParams } from './entities/job.entity';
 
 @Controller('jobs')
 export class JobsController {
@@ -13,8 +14,8 @@ export class JobsController {
   }
 
   @Get()
-  findAll() {
-    return this.jobsService.findAll();
+  search(@Query() searchParams : JobsSearchParams) {
+    return this.jobsService.search(searchParams);
   }
 
   @Get(':id')

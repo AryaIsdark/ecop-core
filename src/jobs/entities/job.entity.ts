@@ -1,5 +1,6 @@
 import { BaseEntity } from 'src/base/base-entity';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Client } from 'src/clients/entities/client.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 
 export type JobsSearchParams = {
   tenantId? : number
@@ -27,4 +28,6 @@ export class Job extends BaseEntity {
   @Column()
   tenantId: number
 
+  // @ManyToOne(() => Client, (client) => client.jobs)
+  // client: Client;
 }
