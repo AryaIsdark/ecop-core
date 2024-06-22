@@ -2,6 +2,7 @@ export * from './app.module';
 export * from './clients'
 export * from './jobs/jobs.service';
 export * from './base/base-entity'
+export * from './jobs'
 export * from './job-configurations'
 export * from './suppliers'
 export * from './products'
