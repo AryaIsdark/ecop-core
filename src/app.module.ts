@@ -5,9 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseConfigService } from './database-config/database-config.service';
 import { DataSourceOptions } from 'typeorm';
 import { TestComponentModule } from './test-component/test-component.module';
+import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 @Global()
 @Module({
-  imports: [TestComponentModule]
+  imports: [TestComponentModule, PurchaseOrdersModule]
 })
 
 export class CoreModule {
