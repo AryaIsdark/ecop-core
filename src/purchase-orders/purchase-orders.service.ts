@@ -35,7 +35,7 @@ export class PurchaseOrdersService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} purchaseOrder`;
+    return this.repository.findOne({ where: { id } });
   }
 
   update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {
