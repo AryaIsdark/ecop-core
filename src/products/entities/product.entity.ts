@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { PurchaseOrderLineItem } from 'src/purchase-order-line-items';
+import { Entity, Column, PrimaryGeneratedColumn, Unique, OneToMany } from 'typeorm';
 
 @Entity()
 @Unique(['sku','tenantId'])
@@ -29,6 +30,9 @@ export class Product {
 
   @Column({ nullable: true })
   supplierId: number;
+
+  // @OneToMany(() => PurchaseOrderLineItem, (lineItem) => lineItem.product)
+  // purchaseOrderLineItems: Promise<PurchaseOrderLineItem[]>;
 
   // @ManyToOne(() => Supplier, (supplier) => supplier.products)
   // supplier: Supplier;

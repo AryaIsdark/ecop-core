@@ -15,7 +15,6 @@ export class ProductsService {
     private readonly repository: Repository<Product>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-    private readonly suppliersService: SuppliersService,
   ) {
 
   }
@@ -28,7 +27,7 @@ export class ProductsService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} product`;
+    return this.repository.findOne({where : {id}})
   }
 
   update(id: number, updateProductDto: UpdateProductDto) {

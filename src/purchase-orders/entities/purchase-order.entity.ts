@@ -1,5 +1,6 @@
 import { BaseEntity } from 'src/base/base-entity';
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { PurchaseOrderLineItem } from 'src/purchase-order-line-items/entities/purchase-order-line-item.entity';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 export enum PurchaseOrderStatus {
     Draft = 'draft',
@@ -34,5 +35,12 @@ export class PurchaseOrder extends BaseEntity {
  
   @Column({ nullable: true })
   clientId: number;
+
+  @OneToMany(
+    () => PurchaseOrderLineItem,
+    (lineItem) => lineItem.purchaseOrder,
+    { cascade: true },
+  )
+  lineItems: Promise<PurchaseOrderLineItem[]>;
 
 }
