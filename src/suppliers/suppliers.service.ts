@@ -53,8 +53,8 @@ export class SuppliersService {
     return this.repository.find();
   }
 
-  findOne(id: number) {
-    return this.repository.findOne({where : {id}});
+  async findOne(id: number) {
+    return await this.repository.findOne({where : {id}});
   }
 
   update(id: number, updateSupplierDto: UpdateSupplierDto) {

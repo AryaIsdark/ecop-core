@@ -4,12 +4,14 @@ import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrder, PurchaseOrderStatus } from './entities/purchase-order.entity';
 import { Repository } from 'typeorm';
+import { SuppliersService } from 'src/suppliers';
 
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
     @InjectRepository(PurchaseOrder)
-    private readonly repository: Repository<PurchaseOrder>
+    private readonly repository: Repository<PurchaseOrder>,
+    private readonly suppliersService : SuppliersService
   ) {
 
   }
@@ -34,8 +36,11 @@ export class PurchaseOrdersService {
     return this.repository.find();
   }
 
-  findOne(id: number) {
-    return this.repository.findOne({ where: { id } });
+  async findOne(id: number) {
+    const purchaseOrder = await this.repository.findOne({ where: { id } });
+    const supplier = await this.suppliersService.findOne(purchaseOrder.supplierId)
+
+    return {...purchaseOrder, supplier}
   }
 
   update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {
