@@ -5,13 +5,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrder, PurchaseOrderStatus } from './entities/purchase-order.entity';
 import { Repository } from 'typeorm';
 import { SuppliersService } from 'src/suppliers';
+import { PurchaseOrderLineItemsService } from 'src/purchase-order-line-items';
 
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
     @InjectRepository(PurchaseOrder)
     private readonly repository: Repository<PurchaseOrder>,
-    private readonly suppliersService : SuppliersService
+    private readonly suppliersService: SuppliersService,
+    private readonly purchaseOrderLineItemsService: PurchaseOrderLineItemsService
   ) {
 
   }
@@ -36,11 +38,33 @@ export class PurchaseOrdersService {
     return this.repository.find();
   }
 
+  async getTotalPrice(id: number) {
+    const lineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(id)
+    let totalPrice = 0
+    for (const lineItem of lineItems) {
+      totalPrice = totalPrice + Number(lineItem.product.price)
+    }
+
+    return totalPrice
+  }
+
+  async getTotalNumberOfLineItems(id) {
+    const lineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(id)
+    return lineItems.length
+  }
+
+  async getOverview(id: number) {
+    const totalNumberOfLineItems = await this.getTotalNumberOfLineItems(id)
+    const totalPrice = await this.getTotalPrice(id)
+    return { totalNumberOfLineItems, totalPrice }
+  }
+
   async findOne(id: number) {
     const purchaseOrder = await this.repository.findOne({ where: { id } });
     const supplier = await this.suppliersService.findOne(purchaseOrder.supplierId)
+    const overview = await this.getOverview(id)
 
-    return {...purchaseOrder, supplier}
+    return { ...purchaseOrder, supplier, overview }
   }
 
   update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {
