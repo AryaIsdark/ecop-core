@@ -40,12 +40,15 @@ export class PurchaseOrdersService {
 
   async getTotalPrice(id: number) {
     const lineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(id)
-    let totalPrice = 0
-    for (const lineItem of lineItems) {
-      totalPrice = totalPrice + Number(lineItem.product.price)
+    let purchaseOrderTotalPrice = 0
+    if (lineItems.length) {
+      for (const lineItem of lineItems) {
+        const lineItemTotalPrice = Number(lineItem.product.price) * lineItem.quantity
+        purchaseOrderTotalPrice = purchaseOrderTotalPrice + lineItemTotalPrice
+      }
     }
 
-    return totalPrice
+    return purchaseOrderTotalPrice
   }
 
   async getTotalNumberOfLineItems(id) {

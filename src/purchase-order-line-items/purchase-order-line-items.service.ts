@@ -5,6 +5,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrderLineItem } from './entities/purchase-order-line-item.entity';
 import { Repository } from 'typeorm';
 import { ProductsService } from 'src/products';
+import { ExportFormat } from 'src/base/export-format';
+import { CsvKeyMapping, exportToCsv } from 'src/utils/export-csv/export-csv';
 
 @Injectable()
 export class PurchaseOrderLineItemsService {
@@ -53,12 +55,29 @@ export class PurchaseOrderLineItemsService {
     return `This action returns a #${id} purchaseOrderLineItem`;
   }
 
-  update(id: number, updatePurchaseOrderLineItemDto: UpdatePurchaseOrderLineItemDto) {
-    return `This action updates a #${id} purchaseOrderLineItem`;
+  async update(
+    updateDto: UpdatePurchaseOrderLineItemDto,
+  ): Promise<PurchaseOrderLineItem | string> {
+    try {
+      const lineItem = await this.repository.findOne({
+        where: { id: updateDto.id },
+      });
+      if (lineItem?.id) {
+        lineItem.quantity = updateDto.quantity;
+        const updateLineItem =
+          await this.repository.save(lineItem);
+        return updateLineItem;
+      }
+    } catch (e) {
+      throw e;
+    }
+
+    return `something went wrong while updating line item with id ${updateDto.id}`;
   }
 
+
   async getLineItemsForPurchaseOrder(purchaseOrderId: number) {
-    const lineItems = await this.repository.find({ where: { purchaseOrderId } })
+    const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id : 'ASC'} })
     const mappedLineItems = []
     for (const lineItem of lineItems) {
       const product = await this.productsService.findOne(lineItem.productId)
@@ -82,5 +101,26 @@ export class PurchaseOrderLineItemsService {
         error: e,
       };
     }
+  }
+
+  async export(purchaseOrderId: number, exportFormat: ExportFormat){
+    const lineItems = await this.repository.find({where : { purchaseOrderId }, order: {id: 'ASC'}})
+
+    const purchaseOrderKeys: CsvKeyMapping<PurchaseOrderLineItem>[] = [
+      { field: 'product.ean_original', title: 'EAN' },
+      { field: 'quantity', title: 'Quantity' },
+    ];
+
+    if(exportFormat === ExportFormat.CSV){
+      // Handle CSV export (.csv)
+      exportToCsv(lineItems, purchaseOrderKeys, 'some file' )
+    }
+    if(exportFormat === ExportFormat.EXCEL){
+      // Handle EXCEL export (.excel)
+    }
+    if(exportFormat === ExportFormat.TEXT){
+      // Handle TEXT export (.txt)
+    }
+
   }
 }

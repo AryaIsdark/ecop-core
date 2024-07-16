@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PurchaseOrderLineItemsService } from './purchase-order-line-items.service';
 import { CreatePurchaseOrderLineItemDto } from './dto/create-purchase-order-line-item.dto';
 import { UpdatePurchaseOrderLineItemDto } from './dto/update-purchase-order-line-item.dto';
+import { ExportFormat } from 'src/base/export-format';
 
 @Controller('purchase-order-line-items')
 export class PurchaseOrderLineItemsController {
@@ -21,10 +22,15 @@ export class PurchaseOrderLineItemsController {
   findOne(@Param('id') id: string) {
     return this.purchaseOrderLineItemsService.findOne(+id);
   }
+  
+  @Get('export')
+  export(@Query('purchaseOrderId') purchaseOrderId: string, @Query('exportFormat') exportFormat: ExportFormat) {
+    return this.purchaseOrderLineItemsService.export(+purchaseOrderId, exportFormat);
+  }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePurchaseOrderLineItemDto: UpdatePurchaseOrderLineItemDto) {
-    return this.purchaseOrderLineItemsService.update(+id, updatePurchaseOrderLineItemDto);
+  update(@Body() updatePurchaseOrderLineItemDto: UpdatePurchaseOrderLineItemDto) {
+    return this.purchaseOrderLineItemsService.update(updatePurchaseOrderLineItemDto);
   }
 
   @Delete(':id')
