@@ -113,7 +113,7 @@ export class PurchaseOrderLineItemsService {
 
     if(exportFormat === ExportFormat.CSV){
       // Handle CSV export (.csv)
-      exportToCsv(lineItems, purchaseOrderKeys, 'some file' )
+      return exportToCsv(lineItems, purchaseOrderKeys, 'some file' )
     }
     if(exportFormat === ExportFormat.EXCEL){
       // Handle EXCEL export (.excel)
