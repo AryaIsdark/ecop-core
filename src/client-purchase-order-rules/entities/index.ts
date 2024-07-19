@@ -1,0 +1,1 @@
+export * from './client-purchase-order-rule.entity'

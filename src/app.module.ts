@@ -7,9 +7,11 @@ import { DataSourceOptions } from 'typeorm';
 import { TestComponentModule } from './test-component/test-component.module';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 import { PurchaseOrderLineItemsModule } from './purchase-order-line-items/purchase-order-line-items.module';
+import { PurchaseOrderRulesModule } from './purchase-order-rules/purchase-order-rules.module';
+import { ClientPurchaseOrderRulesModule } from './client-purchase-order-rules/client-purchase-order-rules.module';
 @Global()
 @Module({
-  imports: [TestComponentModule, PurchaseOrdersModule, PurchaseOrderLineItemsModule]
+  imports: []
 })
 
 export class CoreModule {

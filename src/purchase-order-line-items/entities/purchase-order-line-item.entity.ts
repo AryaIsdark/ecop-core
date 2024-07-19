@@ -1,7 +1,5 @@
 import { Column, Entity, ManyToOne } from 'typeorm';
-import { PurchaseOrder } from 'src/purchase-orders';
 import { BaseEntity } from 'src/base/base-entity';
-import { Product } from 'src/products';
 
 @Entity()
 export class PurchaseOrderLineItem extends BaseEntity {
@@ -21,10 +19,10 @@ export class PurchaseOrderLineItem extends BaseEntity {
     @Column()
     purchaseOrderId: number;
 
-    @ManyToOne(() => PurchaseOrder, (purchaseOrder) => purchaseOrder.lineItems, {
-        onDelete: 'CASCADE',
-    })
-    purchaseOrder: PurchaseOrder;
+    // @ManyToOne(() => PurchaseOrder, (purchaseOrder) => purchaseOrder.lineItems, {
+    //     onDelete: 'CASCADE',
+    // })
+    // purchaseOrder: PurchaseOrder;
 
 }
 

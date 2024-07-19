@@ -36,11 +36,11 @@ export class PurchaseOrder extends BaseEntity {
   @Column({ nullable: true })
   clientId: number;
 
-  @OneToMany(
-    () => PurchaseOrderLineItem,
-    (lineItem) => lineItem.purchaseOrder,
-    { cascade: true },
-  )
-  lineItems: Promise<PurchaseOrderLineItem[]>;
+  // @OneToMany(
+  //   () => PurchaseOrderLineItem,
+  //   (lineItem) => lineItem.purchaseOrder,
+  //   { cascade: true },
+  // )
+  // lineItems: Promise<PurchaseOrderLineItem[]>;
 
 }
