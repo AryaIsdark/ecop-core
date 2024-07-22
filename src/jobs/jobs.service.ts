@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { JobConfigurationsService } from 'src/job-configurations/job-configurations.service';
 import { JobActionType } from 'src/job-configurations/entities/job-configuration.entity';
 import { ProductSyncService } from 'src/product-sync/product-sync.service';
+import { OrderSyncService } from 'src/order-sync/order-sync.service';
 
 @Injectable()
 export class JobsService {
@@ -15,7 +16,8 @@ export class JobsService {
     @InjectRepository(Job)
     private readonly repository: Repository<Job>,
     private readonly jobConfigurationService: JobConfigurationsService,
-    private readonly productSyncService : ProductSyncService
+    private readonly productSyncService : ProductSyncService,
+    private readonly orderSyncService : OrderSyncService
   ) {
 
   }
@@ -33,6 +35,9 @@ export class JobsService {
       if (jobConfiguration.actionType === JobActionType.SupplierSyncProducts) {
         await this.productSyncService.handleSyncProductJob(jobConfiguration)
       }
+      if(jobConfiguration.actionType === JobActionType.SyncOrders){
+        await this.orderSyncService.handleSyncOrderJob(jobConfiguration)
+      } 
       this.updateStatus(job.id, JobStatus.Done)
 
       return `Succesfully ran job with configuration id ${createJobDto.jobConfigurationId}`

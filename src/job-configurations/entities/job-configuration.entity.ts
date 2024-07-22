@@ -3,12 +3,14 @@ import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 export enum JobActionType {
   SupplierSyncProducts = 'supplier-sync-products',
   WmsSyncProducts = 'wms-sync-product',
-  WmsSyncOrders = 'wms-sync-orders'
+  WmsSyncOrders = 'wms-sync-orders',
+  SyncOrders = 'sync-orders'
 }
 
 export enum EntityType {
   supplier = 'supplier',
   wms = 'wms',
+  order = 'order'
 }
 
 @Entity()
