@@ -1,0 +1,7 @@
+export class CreateOrderLineDto {
+    orderId: number
+    clientId: number
+    product_sku : string
+    product_ean: string
+    quantity: number
+}

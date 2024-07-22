@@ -5,10 +5,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseConfigService } from './database-config/database-config.service';
 import { DataSourceOptions } from 'typeorm';
 import { TestComponentModule } from './test-component/test-component.module';
+import { ShopifyConnectorModule } from './shopify-connector/shopify-connector.module';
+import { EcommercePlatformsModule } from './ecommerce-platforms/ecommerce-platforms.module';
 
 @Global()
 @Module({
-  imports: [TestComponentModule]
+  imports: [TestComponentModule, ShopifyConnectorModule, EcommercePlatformsModule]
 })
 
 export class CoreModule {

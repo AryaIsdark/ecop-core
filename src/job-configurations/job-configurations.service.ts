@@ -53,6 +53,11 @@ export class JobConfigurationsService {
     return result
   }
 
+  async getClientJobConfigurations(clientId: number){
+    const result = await this.repository.find({ where: { tenantId: clientId } })
+    return result
+  }
+
   findOne(id: number) {
     return this.repository.findOne({ where: { id } });
   }
