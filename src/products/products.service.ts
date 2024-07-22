@@ -22,6 +22,29 @@ export class ProductsService {
     return 'This action adds a new product';
   }
 
+  query(params: Partial<Product>) {
+    let whereConditions : Partial<Product> = {}
+    if(params.tenantId){
+      whereConditions = {...whereConditions, tenantId: params.tenantId}
+    }
+    if(params.supplierId){
+      whereConditions = {...whereConditions, supplierId: params.supplierId}
+    }
+    if(params.ean){
+      whereConditions = {...whereConditions, ean: params.ean}
+    }
+    if(params.brand){
+      whereConditions = {...whereConditions, brand: params.brand}
+    }
+    if(params.name){
+      whereConditions = {...whereConditions, brand: params.name}
+    }
+
+    const products = this.repository.find({where : whereConditions})
+
+    return products
+  }
+
   findAll() {
     return this.repository.find();
   }

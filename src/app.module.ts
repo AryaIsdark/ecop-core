@@ -5,13 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseConfigService } from './database-config/database-config.service';
 import { DataSourceOptions } from 'typeorm';
 import { TestComponentModule } from './test-component/test-component.module';
-import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
-import { PurchaseOrderLineItemsModule } from './purchase-order-line-items/purchase-order-line-items.module';
-import { PurchaseOrderRulesModule } from './purchase-order-rules/purchase-order-rules.module';
-import { ClientPurchaseOrderRulesModule } from './client-purchase-order-rules/client-purchase-order-rules.module';
+
 @Global()
 @Module({
-  imports: []
+  imports: [TestComponentModule]
 })
 
 export class CoreModule {

@@ -1,9 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { CreatePurchaseOrderRuleDto } from './dto/create-purchase-order-rule.dto';
 import { UpdatePurchaseOrderRuleDto } from './dto/update-purchase-order-rule.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { PurchaseOrderRule } from './entities';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class PurchaseOrderRulesService {
+  constructor(
+    @InjectRepository(PurchaseOrderRule)
+    private readonly repository: Repository<PurchaseOrderRule>,
+
+  ) {
+    
+  }
+
   create(createPurchaseOrderRuleDto: CreatePurchaseOrderRuleDto) {
     return 'This action adds a new purchaseOrderRule';
   }
@@ -13,7 +24,7 @@ export class PurchaseOrderRulesService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} purchaseOrderRule`;
+    return this.repository.findOne({where: {id}})
   }
 
   update(id: number, updatePurchaseOrderRuleDto: UpdatePurchaseOrderRuleDto) {
