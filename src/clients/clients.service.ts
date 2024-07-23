@@ -4,13 +4,18 @@ import { Client } from './entities/client.entity';
 import { Repository } from 'typeorm';
 import { SuppliersService } from 'src/suppliers/suppliers.service';
 import { JobConfigurationsService } from 'src/job-configurations/job-configurations.service';
-import { JobActionType, JobConfiguration } from 'src/job-configurations/entities/job-configuration.entity';
+import { EntityType, JobActionType, JobConfiguration } from 'src/job-configurations/entities/job-configuration.entity';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
 import { JobsService } from 'src/jobs/jobs.service';
 import { Order, OrdersService } from 'src/orders';
+import { EcommercePlatform, EcommercePlatformsService } from 'src/ecommerce-platforms';
 
 export interface SupplierProductSyncJobConfiguration extends JobConfiguration {
   supplier: Supplier
+}
+
+export interface EcommercePlatformJobConfiguration extends JobConfiguration {
+  ecommercePlatform: EcommercePlatform
 }
 
 export interface OrderSyncJobConfiguration extends JobConfiguration {
@@ -23,7 +28,7 @@ export class ClientsService {
     @InjectRepository(Client)
     private readonly repository: Repository<Client>,
     private readonly suppliersService: SuppliersService,
-    private readonly ordersService: OrdersService,
+    private readonly ecommercePlatformService: EcommercePlatformsService,
     private readonly jobConfigurationsService: JobConfigurationsService,
     private readonly jobsService : JobsService
   ) { }
@@ -42,14 +47,14 @@ export class ClientsService {
     return mappedJobConfigurations
   }
   
-  async getOrderSyncJobConfigurations(clientId: number): Promise<SupplierProductSyncJobConfiguration[]> {
-    const jobConfigurations = await this.jobConfigurationsService.search(clientId, JobActionType.SyncOrders)
+  async getEcommercePlatofmJobConfigurations(clientId: number): Promise<EcommercePlatformJobConfiguration[]> {
+    const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.ecommercePlatform})
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {
-      const orderId = jobConfiguration.entityReferenceId
-      const order = await this.ordersService.findOne(orderId)
+      const ecommercePlatformId = jobConfiguration.entityReferenceId
+      const ecommercePlatform = await this.ecommercePlatformService.findOne(ecommercePlatformId)
       const jobs = await this.jobsService.search({entityReferenceId : jobConfiguration.id})
-      mappedJobConfigurations.push({ ...jobConfiguration, order, jobs })
+      mappedJobConfigurations.push({ ...jobConfiguration, ecommercePlatform, jobs })
     }
 
     return mappedJobConfigurations

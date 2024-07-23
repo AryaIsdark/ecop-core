@@ -7,9 +7,9 @@ import { UpdateClientDto } from './dto/update-client.dto';
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) { }
   
-  @Get(':clientId/order-sync-job-configurations')
+  @Get(':clientId/ecommerce-platform-job-configurations')
   getOrderSyncJobConfigurations(@Param('clientId') clientId: string) {
-    return this.clientsService.getOrderSyncJobConfigurations(+clientId);
+    return this.clientsService.getEcommercePlatofmJobConfigurations(+clientId);
   }
 
   @Get(':clientId/product-sync-job-configurations')

@@ -53,6 +53,24 @@ export class JobConfigurationsService {
     return result
   }
 
+  async query(clientId: number, params: Partial<JobConfiguration>){
+    let whereConditions : Partial<JobConfiguration> = {
+      tenantId: clientId
+    }
+
+    if(params.entityType){
+      whereConditions = {...whereConditions, entityType: params.entityType}
+    }
+
+    if(params.actionType){
+      whereConditions = {...whereConditions, actionType: params.actionType}
+    }
+
+    const result = await this.repository.find({where: whereConditions})
+
+    return result
+  }
+
   async getClientJobConfigurations(clientId: number){
     const result = await this.repository.find({ where: { tenantId: clientId } })
     return result

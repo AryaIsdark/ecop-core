@@ -10,7 +10,8 @@ export enum JobActionType {
 export enum EntityType {
   supplier = 'supplier',
   wms = 'wms',
-  order = 'order'
+  order = 'order',
+  ecommercePlatform = 'ecommerce-platform'
 }
 
 @Entity()
