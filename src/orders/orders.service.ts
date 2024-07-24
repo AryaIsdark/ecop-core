@@ -17,6 +17,7 @@ export class OrdersService {
     const newOrder = new Order()
     newOrder.clientId = 1
     newOrder.reference = createOrderDto.reference;
+    
     return await this.repository.save(newOrder)
   }
 

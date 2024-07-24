@@ -7,10 +7,11 @@ import { DataSourceOptions } from 'typeorm';
 import { TestComponentModule } from './test-component/test-component.module';
 import { ShopifyConnectorModule } from './shopify-connector/shopify-connector.module';
 import { EcommercePlatformsModule } from './ecommerce-platforms/ecommerce-platforms.module';
+import { ProductAnalyticsModule } from './product-analytics/product-analytics.module';
 
 @Global()
 @Module({
-  imports: [TestComponentModule, ShopifyConnectorModule, EcommercePlatformsModule]
+  imports: [TestComponentModule, ShopifyConnectorModule, EcommercePlatformsModule, ProductAnalyticsModule]
 })
 
 export class CoreModule {

@@ -4,23 +4,35 @@ import { UpdateOrderLineDto } from './dto/update-order-line.dto';
 import { OrderLine } from './entities';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ProductAnalyticsService } from 'src/product-analytics';
 
 @Injectable()
 export class OrderLinesService {
   constructor(
     @InjectRepository(OrderLine)
     private readonly repository: Repository<OrderLine>,
+    private readonly productAnalyticsService: ProductAnalyticsService
   ) {
 
   }
   async create(createOrderLineDto: CreateOrderLineDto) {
-    const newOrderLine = new OrderLine();
-    newOrderLine.clientId = createOrderLineDto.clientId
-    newOrderLine.orderId = createOrderLineDto.orderId
-    newOrderLine.product_sku = createOrderLineDto.product_sku
-    newOrderLine.product_ean = createOrderLineDto.product_ean
-    newOrderLine.quantity = 1
-    return await this.repository.save(newOrderLine)
+    const orderLine = new OrderLine();
+    orderLine.clientId = createOrderLineDto.clientId
+    orderLine.orderId = createOrderLineDto.orderId
+    orderLine.product_sku = createOrderLineDto.product_sku
+    orderLine.product_ean = createOrderLineDto.product_ean
+    orderLine.quantity = 1
+    await this.repository.save(orderLine)
+
+    await this.productAnalyticsService.create({
+      clientId: orderLine.clientId,
+      orderId: orderLine.orderId,
+      product_ean: orderLine.product_ean,
+      product_sku: orderLine.product_sku,
+      count: 1
+    })
+
+    return 'succesfully created order line'
   }
 
   findAll() {
