@@ -4,7 +4,8 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
 import { EntityManager, Repository } from 'typeorm';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { SuppliersService } from 'src/suppliers/suppliers.service';
+import { InventoryService } from 'src/inventory/inventory.service';
+import { SuppliersService } from 'src/suppliers';
 
 
 @Injectable()
@@ -15,6 +16,8 @@ export class ProductsService {
     private readonly repository: Repository<Product>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
+    private readonly inventoryService: InventoryService,
+    private readonly suppliersService: SuppliersService
   ) {
 
   }
@@ -22,7 +25,7 @@ export class ProductsService {
     return 'This action adds a new product';
   }
 
-  query(params: Partial<Product>) {
+  async query(params: Partial<Product>) {
     let whereConditions : Partial<Product> = {}
     if(params.tenantId){
       whereConditions = {...whereConditions, tenantId: params.tenantId}
@@ -40,9 +43,16 @@ export class ProductsService {
       whereConditions = {...whereConditions, brand: params.name}
     }
 
-    const products = this.repository.find({where : whereConditions})
+    const products = await this.repository.find({where : whereConditions})
+    const productsWithInventory = []
 
-    return products
+    for(const product of products){
+      const inventoryInfo = await this.inventoryService.findWithEan(product.ean)
+      const supplier = await this.suppliersService.findOne(product.supplierId);
+      productsWithInventory.push({...product, inventoryInfo, supplier})
+    }
+
+    return productsWithInventory
   }
 
   findAll() {

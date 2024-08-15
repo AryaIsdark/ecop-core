@@ -6,16 +6,16 @@ import { Entity, Column, Unique } from 'typeorm';
 export class Inventory extends BaseEntity {
 
   @Column()
-  product_ean: number;
+  product_ean: string;
 
   @Column()
-  product_sku: number;
+  product_sku: string;
 
   @Column()
-  article_number: number;
+  article_number: string;
 
   @Column({ nullable: true })
-  sellable_number_of_items: string;
+  sellable_number_of_items: number;
 
   @Column({ nullable: true })
   clientId: number;

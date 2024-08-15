@@ -5,6 +5,7 @@ import { JobConfiguration } from 'src/job-configurations';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { OngoingWmsConfig, OngoingWmsConnectorService } from 'src/ongoing-wms-connector/ongoing-wms-connector.service';
 import { WarehouseManagementSystemsService } from 'src/warehouse-management-systems';
+import { Inventory } from 'src/inventory/entities';
 
 @Injectable()
 export class InventorySyncService {
@@ -35,8 +36,24 @@ export class InventorySyncService {
     return `This action removes a #${id} inventorySync`;
   }
 
-  async handleSyncOngoingWmsInventory(config: OngoingWmsConfig){
-    const response = this.ongoingWmsConnectorService.getArticlesInventory(config as unknown as OngoingWmsConfig)
+  async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
+    const response = await this.ongoingWmsConnectorService.getArticlesInventory(config as unknown as OngoingWmsConfig)
+    const inventories: Partial<Inventory>[] = []
+    for (const item of response.data) {
+      const inventory = new Inventory()
+      inventory.clientId = clientId;
+      inventory.article_number = item.articleNumber;
+      inventory.product_ean = item.articleNumber;
+      inventory.product_sku = item.articleNumber;
+      // Summing up sellableNumberOfItems across all warehouses
+      inventory.sellable_number_of_items = item.inventoryPerWarehouse.reduce(
+        (sum, warehouseInfo) => sum + warehouseInfo.sellableNumberOfItems, 0
+      );
+
+      inventories.push(inventory)
+    }
+
+    this.inventoryService.upserInventory(clientId, inventories as Inventory[])
   }
 
 
@@ -46,7 +63,7 @@ export class InventorySyncService {
 
     try {
       if (warehouseManagemenSystem.name === 'ongoing') {
-        await this.handleSyncOngoingWmsInventory(jobConfiguration.config as OngoingWmsConfig)
+        await this.handleSyncOngoingWmsInventory(jobConfiguration.config as OngoingWmsConfig, tenantId)
       }
     }
     catch (e) {
