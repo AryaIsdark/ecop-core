@@ -8,6 +8,7 @@ import { JobConfigurationsService } from 'src/job-configurations/job-configurati
 import { JobActionType } from 'src/job-configurations/entities/job-configuration.entity';
 import { ProductSyncService } from 'src/product-sync/product-sync.service';
 import { OrderSyncService } from 'src/order-sync/order-sync.service';
+import { InventorySyncService } from 'src/inventory-sync/inventory-sync.service';
 
 @Injectable()
 export class JobsService {
@@ -17,7 +18,8 @@ export class JobsService {
     private readonly repository: Repository<Job>,
     private readonly jobConfigurationService: JobConfigurationsService,
     private readonly productSyncService : ProductSyncService,
-    private readonly orderSyncService : OrderSyncService
+    private readonly orderSyncService : OrderSyncService,
+    private readonly inventorySyncService : InventorySyncService
   ) {
 
   }
@@ -37,6 +39,9 @@ export class JobsService {
       }
       if(jobConfiguration.actionType === JobActionType.SyncOrders){
         await this.orderSyncService.handleSyncOrderJob(jobConfiguration)
+      } 
+      if(jobConfiguration.actionType === JobActionType.SyncInventory){
+        await this.inventorySyncService.handleSyncInventoryJob(jobConfiguration)
       } 
       this.updateStatus(job.id, JobStatus.Done)
 

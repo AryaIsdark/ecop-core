@@ -4,7 +4,8 @@ export enum JobActionType {
   SupplierSyncProducts = 'supplier-sync-products',
   WmsSyncProducts = 'wms-sync-product',
   WmsSyncOrders = 'wms-sync-orders',
-  SyncOrders = 'sync-orders'
+  SyncOrders = 'sync-orders',
+  SyncInventory = 'sync-inventory'
 }
 
 export enum EntityType {

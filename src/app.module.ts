@@ -9,10 +9,13 @@ import { ShopifyConnectorModule } from './shopify-connector/shopify-connector.mo
 import { EcommercePlatformsModule } from './ecommerce-platforms/ecommerce-platforms.module';
 import { ProductAnalyticsModule } from './product-analytics/product-analytics.module';
 import { WarehouseManagementSystemsModule } from './warehouse-management-systems/warehouse-management-systems.module';
+import { OngoingWmsConnectorModule } from './ongoing-wms-connector/ongoing-wms-connector.module';
+import { InventoryModule } from './inventory/inventory.module';
+import { InventorySyncModule } from './inventory-sync/inventory-sync.module';
 
 @Global()
 @Module({
-  imports: [TestComponentModule, ShopifyConnectorModule, EcommercePlatformsModule, ProductAnalyticsModule, WarehouseManagementSystemsModule]
+  imports: []
 })
 
 export class CoreModule {
