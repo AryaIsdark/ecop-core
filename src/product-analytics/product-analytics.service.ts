@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UpdateProductAnalyticDto } from './dto/update-product-analytic.dto';
 import { ProductAnalytic } from './entities/product-analytic.entity';
-import { Repository } from 'typeorm';
+import { LessThan, Repository, MoreThan } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
@@ -46,6 +46,17 @@ export class ProductAnalyticsService {
     }
 
     return await this.repository.find({ where: whereConditions })
+  }
+
+ async getOrderQuantityForGivenRange(productEan: string, dateFrom: Date, dateTo: Date) {
+    const results = await this.repository.find({
+      where: {
+        product_ean: productEan,
+        createdAt:  MoreThan(dateFrom) && LessThan(dateTo),
+      }
+    })
+
+    return results
   }
 
   findAll() {
