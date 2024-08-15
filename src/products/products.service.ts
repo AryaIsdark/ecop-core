@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Product } from './entities/product.entity';
+import { Product, ProductsQueryParams } from './entities/product.entity';
 import { EntityManager, Repository } from 'typeorm';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { SuppliersService } from 'src/suppliers';
+import { Paginate } from 'src/base/paginate';
 
 
 @Injectable()
@@ -25,34 +26,42 @@ export class ProductsService {
     return 'This action adds a new product';
   }
 
-  async query(params: Partial<Product>) {
-    let whereConditions : Partial<Product> = {}
-    if(params.tenantId){
-      whereConditions = {...whereConditions, tenantId: params.tenantId}
+  async query(
+    params: ProductsQueryParams = { pageNumber: 1, pageSize: 25 },
+  ): Promise<Paginate<Product>> {
+    const take = params.pageSize;
+    const skip = (params.pageNumber - 1) * params.pageSize;
+
+    let whereConditions: Partial<Product> = {}
+    if (params.tenantId) {
+      whereConditions = { ...whereConditions, tenantId: params.tenantId }
     }
-    if(params.supplierId){
-      whereConditions = {...whereConditions, supplierId: params.supplierId}
+    if (params.supplierId) {
+      whereConditions = { ...whereConditions, supplierId: params.supplierId }
     }
-    if(params.ean){
-      whereConditions = {...whereConditions, ean: params.ean}
+    if (params.ean) {
+      whereConditions = { ...whereConditions, ean: params.ean }
     }
-    if(params.brand){
-      whereConditions = {...whereConditions, brand: params.brand}
+    if (params.brand) {
+      whereConditions = { ...whereConditions, brand: params.brand }
     }
-    if(params.name){
-      whereConditions = {...whereConditions, brand: params.name}
+    if (params.name) {
+      whereConditions = { ...whereConditions, brand: params.name }
     }
 
-    const products = await this.repository.find({where : whereConditions})
+    const [products, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })
     const productsWithInventory = []
 
-    for(const product of products){
+    for (const product of products) {
       const inventoryInfo = await this.inventoryService.findWithEan(product.ean)
       const supplier = await this.suppliersService.findOne(product.supplierId);
-      productsWithInventory.push({...product, inventoryInfo, supplier})
+      productsWithInventory.push({ ...product, inventoryInfo, supplier })
     }
 
-    return productsWithInventory
+    return {
+      count,
+      data: productsWithInventory
+    }
   }
 
   findAll() {
@@ -60,7 +69,7 @@ export class ProductsService {
   }
 
   findOne(id: number) {
-    return this.repository.findOne({where : {id}})
+    return this.repository.findOne({ where: { id } })
   }
 
   update(id: number, updateProductDto: UpdateProductDto) {

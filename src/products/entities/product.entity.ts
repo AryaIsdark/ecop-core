@@ -40,3 +40,15 @@ export class Product {
   // @ManyToOne(() => Client, (client) => client.clientProducts)
   // client: Client;
 }
+
+
+export type ProductsQueryParams = {
+  pageNumber: number;
+  pageSize: number;
+  tenantId?: number;
+  supplierId?: number;
+  sku?: string;
+  name?: string;
+  ean?: string;
+  brand?: string;
+};
