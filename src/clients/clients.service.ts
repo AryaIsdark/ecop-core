@@ -53,13 +53,13 @@ export class ClientsService {
   }
   
   async getWarehouseManagementSystemJobConfigurations(clientId: number): Promise<EcommercePlatformJobConfiguration[]> {
-    const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.wareHouseManagemenSystem})
+    const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.warehouseManagemenSystem})
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {
-      const ecommercePlatformId = jobConfiguration.entityReferenceId
-      const ecommercePlatform = await this.ecommercePlatformService.findOne(ecommercePlatformId)
+      const warehouseManagementSystemId = jobConfiguration.entityReferenceId
+      const warehouseManagementSystem = await this.warehouseManagementSystemsService.findOne(warehouseManagementSystemId)
       const jobs = await this.jobsService.search({entityReferenceId : jobConfiguration.id})
-      mappedJobConfigurations.push({ ...jobConfiguration, ecommercePlatform, jobs })
+      mappedJobConfigurations.push({ ...jobConfiguration, warehouseManagementSystem, jobs })
     }
 
     return mappedJobConfigurations
@@ -69,12 +69,12 @@ export class ClientsService {
     const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.ecommercePlatform})
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {
-      const warehouseManagementSystemId = jobConfiguration.entityReferenceId
-      const warehouseManagementSystem = await this.warehouseManagementSystemsService.findOne(warehouseManagementSystemId)
+      const ecommercePlatformId = jobConfiguration.entityReferenceId
+      const ecommercePlatform = await this.ecommercePlatformService.findOne(ecommercePlatformId)
       const jobs = await this.jobsService.search({entityReferenceId : jobConfiguration.id})
-      mappedJobConfigurations.push({ ...jobConfiguration, warehouseManagementSystem, jobs })
+      mappedJobConfigurations.push({ ...jobConfiguration, ecommercePlatform, jobs })
     }
-
+  
     return mappedJobConfigurations
   }
 
