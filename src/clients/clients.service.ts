@@ -9,6 +9,7 @@ import { Supplier } from 'src/suppliers/entities/supplier.entity';
 import { JobsService } from 'src/jobs/jobs.service';
 import { Order, OrdersService } from 'src/orders';
 import { EcommercePlatform, EcommercePlatformsService } from 'src/ecommerce-platforms';
+import { WarehouseManagementSystem, WarehouseManagementSystemsService } from 'src/warehouse-management-systems';
 
 export interface SupplierProductSyncJobConfiguration extends JobConfiguration {
   supplier: Supplier
@@ -16,6 +17,9 @@ export interface SupplierProductSyncJobConfiguration extends JobConfiguration {
 
 export interface EcommercePlatformJobConfiguration extends JobConfiguration {
   ecommercePlatform: EcommercePlatform
+}
+export interface WarehouseManagementSystemJobConfiguration extends JobConfiguration {
+  warehouseManagementSystem: WarehouseManagementSystem
 }
 
 export interface OrderSyncJobConfiguration extends JobConfiguration {
@@ -30,6 +34,7 @@ export class ClientsService {
     private readonly suppliersService: SuppliersService,
     private readonly ecommercePlatformService: EcommercePlatformsService,
     private readonly jobConfigurationsService: JobConfigurationsService,
+    private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService,
     private readonly jobsService : JobsService
   ) { }
 
@@ -47,14 +52,27 @@ export class ClientsService {
     return mappedJobConfigurations
   }
   
-  async getEcommercePlatofmJobConfigurations(clientId: number): Promise<EcommercePlatformJobConfiguration[]> {
-    const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.ecommercePlatform})
+  async getWarehouseManagementSystemJobConfigurations(clientId: number): Promise<EcommercePlatformJobConfiguration[]> {
+    const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.wareHouseManagemenSystem})
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {
       const ecommercePlatformId = jobConfiguration.entityReferenceId
       const ecommercePlatform = await this.ecommercePlatformService.findOne(ecommercePlatformId)
       const jobs = await this.jobsService.search({entityReferenceId : jobConfiguration.id})
       mappedJobConfigurations.push({ ...jobConfiguration, ecommercePlatform, jobs })
+    }
+
+    return mappedJobConfigurations
+  }
+
+  async getEcommercePlatofmJobConfigurations(clientId: number): Promise<EcommercePlatformJobConfiguration[]> {
+    const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.ecommercePlatform})
+    const mappedJobConfigurations = []
+    for (const jobConfiguration of jobConfigurations) {
+      const warehouseManagementSystemId = jobConfiguration.entityReferenceId
+      const warehouseManagementSystem = await this.warehouseManagementSystemsService.findOne(warehouseManagementSystemId)
+      const jobs = await this.jobsService.search({entityReferenceId : jobConfiguration.id})
+      mappedJobConfigurations.push({ ...jobConfiguration, warehouseManagementSystem, jobs })
     }
 
     return mappedJobConfigurations

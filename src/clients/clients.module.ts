@@ -6,13 +6,13 @@ import { Client } from './entities/client.entity';
 import { SuppliersModule } from 'src/suppliers/suppliers.module';
 import { JobConfigurationsModule } from 'src/job-configurations/job-configurations.module';
 import { JobsModule } from 'src/jobs/jobs.module';
-import { OrdersModule } from 'src/orders';
 import { EcommercePlatformsModule } from 'src/ecommerce-platforms';
+import { WarehouseManagementSystemsModule } from 'src/warehouse-management-systems';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Client]), JobsModule, EcommercePlatformsModule, SuppliersModule, JobConfigurationsModule],
+  imports: [TypeOrmModule.forFeature([Client]), JobsModule, EcommercePlatformsModule, SuppliersModule, JobConfigurationsModule, WarehouseManagementSystemsModule],
   controllers: [ClientsController],
   providers: [ClientsService],
-  exports : [ClientsService]
+  exports: [ClientsService]
 })
-export class ClientsModule {}
+export class ClientsModule { }

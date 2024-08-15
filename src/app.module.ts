@@ -8,10 +8,11 @@ import { TestComponentModule } from './test-component/test-component.module';
 import { ShopifyConnectorModule } from './shopify-connector/shopify-connector.module';
 import { EcommercePlatformsModule } from './ecommerce-platforms/ecommerce-platforms.module';
 import { ProductAnalyticsModule } from './product-analytics/product-analytics.module';
+import { WarehouseManagementSystemsModule } from './warehouse-management-systems/warehouse-management-systems.module';
 
 @Global()
 @Module({
-  imports: [TestComponentModule, ShopifyConnectorModule, EcommercePlatformsModule, ProductAnalyticsModule]
+  imports: [TestComponentModule, ShopifyConnectorModule, EcommercePlatformsModule, ProductAnalyticsModule, WarehouseManagementSystemsModule]
 })
 
 export class CoreModule {
