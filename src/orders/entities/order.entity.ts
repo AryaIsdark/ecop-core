@@ -1,5 +1,5 @@
 import { BaseEntity } from 'src/base/base-entity';
-import { PurchaseOrderLineItem } from 'src/purchase-order-line-items';
+import { OrderLine } from 'src/order-lines';
 import { Entity, Column, PrimaryGeneratedColumn, Unique, OneToMany } from 'typeorm';
 
 export enum OrderStatus {
@@ -30,4 +30,7 @@ export class Order extends BaseEntity {
 
   @Column({ nullable: true })
   clientId: number;
+
+  @OneToMany(() => OrderLine, orderLine => orderLine.order)
+  orderLines: OrderLine[];
 }

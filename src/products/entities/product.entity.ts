@@ -43,8 +43,8 @@ export class Product {
 
 
 export type ProductsQueryParams = {
-  pageNumber: number;
-  pageSize: number;
+  pageNumber?: number;
+  pageSize?: number;
   tenantId?: number;
   supplierId?: number;
   sku?: string;

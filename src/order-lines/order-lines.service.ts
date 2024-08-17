@@ -36,7 +36,7 @@ export class OrderLinesService {
   }
 
   findAll() {
-    return `This action returns all orderLines`;
+    return this.repository.find();
   }
 
   findOne(id: number) {

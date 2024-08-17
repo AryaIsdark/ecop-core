@@ -48,7 +48,7 @@ export class PurchaseOrderLineItemsService {
   }
 
   findAll() {
-    return `This action returns all purchaseOrderLineItems`;
+    return this.repository.find();
   }
 
   findOne(id: number) {

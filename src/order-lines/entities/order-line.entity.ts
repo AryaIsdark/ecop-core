@@ -1,5 +1,6 @@
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { BaseEntity } from 'src/base/base-entity';
+import { Order } from 'src/orders';
 
 @Entity()
 export class OrderLine extends BaseEntity {
@@ -18,4 +19,7 @@ export class OrderLine extends BaseEntity {
    
     @Column()
     orderId: number;
+
+    @ManyToOne(() => Order, order => order.orderLines, { onDelete: 'CASCADE' })
+    order: Order;
 }

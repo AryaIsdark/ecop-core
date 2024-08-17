@@ -21,3 +21,10 @@ export class Inventory extends BaseEntity {
   clientId: number;
 }
 
+export type InventoryQueryParams = {
+  sellable_number_of_items_less_than?: number
+  sellable_number_of_items_more_than?: number
+  clientId? : number
+  product_ean?: string
+  product_sku?: string
+}

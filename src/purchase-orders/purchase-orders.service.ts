@@ -6,16 +6,65 @@ import { PurchaseOrder, PurchaseOrderStatus } from './entities/purchase-order.en
 import { Repository } from 'typeorm';
 import { SuppliersService } from 'src/suppliers';
 import { PurchaseOrderLineItemsService } from 'src/purchase-order-line-items';
+import { InventoryService } from 'src/inventory/inventory.service';
+import { Product } from 'src/products';
+import { OrderLinesService } from 'src/order-lines';
 
 @Injectable()
 export class PurchaseOrdersService {
   constructor(
     @InjectRepository(PurchaseOrder)
     private readonly repository: Repository<PurchaseOrder>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
     private readonly suppliersService: SuppliersService,
-    private readonly purchaseOrderLineItemsService: PurchaseOrderLineItemsService
+    private readonly orderLinesService: OrderLinesService,
+    private readonly purchaseOrderLineItemsService: PurchaseOrderLineItemsService,
+    private readonly inventoryService: InventoryService,
   ) {
 
+  }
+
+  async suggestLineItemsForPurchaseOrder(purchaseOrderId) : Promise<Product[]> {
+    const suggestions = []
+    // Get purchase order by ID
+    const purchaseOrder = await this.findOne(purchaseOrderId);
+    // Get order lines 
+    const orderLines = await this.orderLinesService.findAll()
+    const productEANs = new Set()
+    // from order lines get product EANs
+    for (const orderLine of orderLines) {
+      if (!productEANs.has(orderLine.product_ean)) {
+        const product = await this.productRepository.findOne({ where: { tenantId: purchaseOrder.clientId, supplierId: purchaseOrder.supplierId, ean: orderLine.product_ean } })
+        if (product) {
+          const inventory = await this.inventoryService.findWithEan(product.ean)
+          // Check the inventory on that product
+          if (inventory.sellable_number_of_items <= 0) {
+            productEANs.add(orderLine.product_ean)
+            // Add to suggestion if stock is too low
+            suggestions.push(product)
+          }
+        }
+      }
+    }
+
+    return suggestions
+  }
+
+  async generateLineItemsFromSuggestion(purchaseOrderId){
+    const suggestions = await this.suggestLineItemsForPurchaseOrder(purchaseOrderId)
+    const purchaseOrder = await this.findOne(purchaseOrderId);
+    if(suggestions.length){
+      for(const suggestion of suggestions){
+        await this.purchaseOrderLineItemsService.create({
+            clientId: purchaseOrder.clientId,
+            purchaseOrderId: purchaseOrder.id,
+            productId: suggestion.id,
+            quantity: 1, // TODO: Make a function to get quantity
+            supplierId: purchaseOrder.supplierId
+          })
+      }
+    }
   }
 
   async create(createDto: CreatePurchaseOrderDto): Promise<PurchaseOrder | string> {

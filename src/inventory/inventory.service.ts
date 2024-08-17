@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
-import { Inventory } from './entities';
+import { Inventory, InventoryQueryParams } from './entities';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, LessThan, MoreThan, Repository } from 'typeorm';
 
 @Injectable()
 export class InventoryService {
@@ -25,10 +25,10 @@ export class InventoryService {
   }
 
   findWithEan(ean: string) {
-    return this.repository.findOne({where : {product_ean: ean}});
+    return this.repository.findOne({ where: { product_ean: ean } });
   }
   findOne(id: number) {
-    return this.repository.findOne({where : {id }});
+    return this.repository.findOne({ where: { id } });
   }
 
   update(id: number, updateInventoryDto: UpdateInventoryDto) {
@@ -38,6 +38,36 @@ export class InventoryService {
   remove(id: number) {
     return `This action removes a #${id} inventory`;
   }
+
+  async query(params: InventoryQueryParams) {
+    const where : any = {};
+
+    if (params.sellable_number_of_items_less_than) {
+        where.sellable_number_of_items = LessThan(params.sellable_number_of_items_less_than);
+    }
+    
+    if (params.sellable_number_of_items_more_than) {
+        where.sellable_number_of_items = MoreThan(params.sellable_number_of_items_more_than);
+    }
+    
+    if (params.clientId) {
+        where.clientId = params.clientId;
+    }
+    
+    if (params.product_ean) {
+        where.product_ean = params.product_ean;
+    }
+
+    if (params.product_sku) {
+        where.product_sku = params.product_sku;
+    }
+
+    const result = await this.repository.find({
+      where
+    });
+
+    return result;
+}
 
   async upserInventory(
     clientId: number,
