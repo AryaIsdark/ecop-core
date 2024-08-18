@@ -83,8 +83,15 @@ export class PurchaseOrdersService {
     return 'Given supplier does not exist in the system';
   }
 
-  findAll() {
-    return this.repository.find();
+  async findAll() {
+    const purchaseOrders = await this.repository.find();
+    const mappedPurchaseOrders = []
+    for(const purchaseOrder of purchaseOrders){
+      const supplier = await this.suppliersService.findOne(purchaseOrder.supplierId)
+      mappedPurchaseOrders.push({...purchaseOrder, supplier})
+    }
+
+    return mappedPurchaseOrders
   }
 
   async getTotalPrice(id: number) {
