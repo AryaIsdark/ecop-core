@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseConfigService } from './database-config/database-config.service';
 import { DataSourceOptions } from 'typeorm';
+import { JwtModule } from '@nestjs/jwt';
 
 @Global()
 @Module({
