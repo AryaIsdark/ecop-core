@@ -1,4 +1,6 @@
 export * from './app.module';
+export * from './auth';
+export * from './users';
 export * from './clients'
 export * from './jobs/jobs.service';
 export * from './base/base-entity'
