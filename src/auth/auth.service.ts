@@ -2,12 +2,23 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users';
 
+export type JwtTokenProps = {
+  username: string,
+  clientId: number
+}
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
   ) {}
+
+  extractTokenPayload(authorization: string) : JwtTokenProps {
+    const token = authorization.split(' ')[1];
+    const decodedToken = this.jwtService.decode(token);
+    return decodedToken;
+  }
+
 
   async signIn(username: string, pass: string): Promise<any> {
     const user = await this.usersService.findOne(username);
