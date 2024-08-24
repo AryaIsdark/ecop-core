@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { QueueService } from './queue.service';
-import { QueueController } from './queue.controller';
 import { BullModule } from '@nestjs/bull';
 import { QueueProcessor } from './queue.processor';
 import { JobsModule } from 'src/jobs/jobs.module';
@@ -12,7 +11,6 @@ import { JobsModule } from 'src/jobs/jobs.module';
     }),
     JobsModule,
   ],
-  controllers: [QueueController],
   providers: [QueueService, QueueProcessor],
   exports: [QueueService]
 })

@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { JobsService } from './jobs.service';
-import { JobsController } from './jobs.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Job } from './entities/job.entity';
 import { JobConfigurationsModule } from 'src/job-configurations/job-configurations.module';
@@ -15,7 +14,6 @@ import { InventorySyncModule } from 'src/inventory-sync/inventory-sync.module';
     OrderSyncModule,
     JobConfigurationsModule,
     InventorySyncModule],
-  controllers: [JobsController],
   providers: [JobsService],
   exports: [JobsService]
 })

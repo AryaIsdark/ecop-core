@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ClientsService } from './clients.service';
-import { ClientsController } from './clients.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Client } from './entities/client.entity';
 import { SuppliersModule } from 'src/suppliers/suppliers.module';
@@ -11,7 +10,6 @@ import { WarehouseManagementSystemsModule } from 'src/warehouse-management-syste
 
 @Module({
   imports: [TypeOrmModule.forFeature([Client]), JobsModule, EcommercePlatformsModule, SuppliersModule, JobConfigurationsModule, WarehouseManagementSystemsModule],
-  controllers: [ClientsController],
   providers: [ClientsService],
   exports: [ClientsService]
 })
