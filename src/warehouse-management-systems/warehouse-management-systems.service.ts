@@ -18,7 +18,7 @@ export class WarehouseManagementSystemsService {
   }
 
   findAll() {
-    return `This action returns all warehouseManagementSystems`;
+    return this.repository.find()
   }
 
   async findOne(id: number) {

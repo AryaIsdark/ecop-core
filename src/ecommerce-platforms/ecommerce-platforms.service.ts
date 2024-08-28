@@ -19,7 +19,7 @@ export class EcommercePlatformsService {
   }
 
   findAll() {
-    return `This action returns all ecommercePlatforms`;
+    return this.repository.find()
   }
 
   async findOne(id: number) {

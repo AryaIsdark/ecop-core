@@ -78,9 +78,28 @@ export class ClientsService {
     return mappedJobConfigurations
   }
 
+  async getTenantEcommercePlatformOptions(tenantId: number) {
+    const ecommercePlatformOptions = await this.ecommercePlatformService.findAll()
+    return ecommercePlatformOptions
+  }
+
+  async getTenantWmsOptions(tenantId: number) {
+    const wmsOptions = await this.warehouseManagementSystemsService.findAll()
+    return wmsOptions
+  }
+
   async getTenantSupplierOptions(tenantId: number) {
     const supplierOptions = await this.suppliersService.findAll()
     return supplierOptions
+  }
+
+  async getTenantReferenceData(tenantId: number){
+    const tenantSupplierOptions = await this.getTenantSupplierOptions(tenantId)
+    const tenantWmsOptions = await this.getTenantWmsOptions(tenantId)
+    const tenantEcommercePlatformOptions = await this.getTenantEcommercePlatformOptions(tenantId)
+
+    return {tenantSupplierOptions, tenantEcommercePlatformOptions, tenantWmsOptions}
+
   }
 
   findAll() {
