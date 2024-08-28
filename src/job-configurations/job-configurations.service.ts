@@ -27,6 +27,8 @@ export class JobConfigurationsService {
           where: {
             tenantId,
             entityReferenceId,
+            entityType,
+            actionType
           },
         });
 

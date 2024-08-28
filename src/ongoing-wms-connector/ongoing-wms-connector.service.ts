@@ -21,7 +21,6 @@ export class OngoingWmsConnectorService {
     catch(e){
       console.error(e)
     }
-    
   }
 
   create(createOngoingWmsConnectorDto: CreateOngoingWmsConnectorDto) {
