@@ -59,7 +59,6 @@ export class OrderSyncService {
   async handleEcommercePlatformSyncOrderJob(jobConfiguration: JobConfiguration) {
     const { entityReferenceId, config, tenantId } = jobConfiguration
     const ecommercePlatform = await this.ecommercePlatformsService.findOne(entityReferenceId)
-    console.log('handleEcommercePlatformSyncOrderJob')
     if (ecommercePlatform.name === 'shopify') {
       await this.handleSyncShopifyOrders(config as ShopifyConfig, tenantId)
     }
@@ -67,8 +66,6 @@ export class OrderSyncService {
 
   async handleSyncOrderJob(jobConfiguration: JobConfiguration) {
     const { entityType } = jobConfiguration
-
-    console.log('handleSyncOrderJob')
     try {
       if (entityType === EntityType.ecommercePlatform) {
         await this.handleEcommercePlatformSyncOrderJob(jobConfiguration)
@@ -76,26 +73,10 @@ export class OrderSyncService {
     }
 
     catch (e) {
-      console.error(e)
       throw (e)
     }
 
     return true
   }
 
-  // async handleSyncOrderJob_OLD(jobConfiguration: JobConfiguration) {
-  //   const { entityReferenceId, config, entityType, tenantId } = jobConfiguration
-  //   const ecommercePlatform = await this.ecommercePlatformsService.findOne(entityReferenceId)
-
-  //   try {
-  //     if (ecommercePlatform.name === 'shopify') {
-  //       await this.handleSyncShopifyOrders(config as ShopifyConfig, tenantId)
-  //     }
-  //   }
-  //   catch (e) {
-  //     throw (e)
-  //   }
-
-  //   return true
-  // }
 }
