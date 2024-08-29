@@ -34,7 +34,7 @@ export class JobsService {
     const job = await this.addNewJob(jobConfiguration.id, jobConfiguration.tenantId)
 
     try {
-      if (jobConfiguration.actionType === JobActionType.SupplierSyncProducts) {
+      if (jobConfiguration.actionType === JobActionType.SyncProducts) {
         await this.productSyncService.handleSyncProductJob(jobConfiguration)
       }
       if(jobConfiguration.actionType === JobActionType.SyncOrders){

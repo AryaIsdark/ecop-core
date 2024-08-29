@@ -1,11 +1,10 @@
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 
 export enum JobActionType {
-  SupplierSyncProducts = 'supplier-sync-products',
-  WmsSyncProducts = 'wms-sync-product',
-  WmsSyncOrders = 'wms-sync-orders',
+  SyncProducts = 'sync-products',
   SyncOrders = 'sync-orders',
-  SyncInventory = 'sync-inventory'
+  SyncInventory = 'sync-inventory',
+  SyncCustomers = 'sync-customers'
 }
 
 export enum EntityType {

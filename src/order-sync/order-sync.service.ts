@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateOrderSyncDto } from './dto/create-order-sync.dto';
 import { UpdateOrderSyncDto } from './dto/update-order-sync.dto';
 import { OrdersService } from 'src/orders';
-import { JobConfiguration } from 'src/job-configurations';
+import { EntityType, JobConfiguration } from 'src/job-configurations';
 import axios from 'axios';
 import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/shopify-connector.service';
 import { EcommercePlatformsService } from 'src/ecommerce-platforms';
@@ -56,19 +56,46 @@ export class OrderSyncService {
 
   }
 
-  async handleSyncOrderJob(jobConfiguration: JobConfiguration) {
-    const { entityReferenceId, config, entityType, tenantId } = jobConfiguration
+  async handleEcommercePlatformSyncOrderJob(jobConfiguration: JobConfiguration) {
+    const { entityReferenceId, config, tenantId } = jobConfiguration
     const ecommercePlatform = await this.ecommercePlatformsService.findOne(entityReferenceId)
+    console.log('handleEcommercePlatformSyncOrderJob')
+    if (ecommercePlatform.name === 'shopify') {
+      await this.handleSyncShopifyOrders(config as ShopifyConfig, tenantId)
+    }
+  }
 
+  async handleSyncOrderJob(jobConfiguration: JobConfiguration) {
+    const { entityType } = jobConfiguration
+
+    console.log('handleSyncOrderJob')
     try {
-      if (ecommercePlatform.name === 'shopify') {
-        await this.handleSyncShopifyOrders(config as ShopifyConfig, tenantId)
+      if (entityType === EntityType.ecommercePlatform) {
+        await this.handleEcommercePlatformSyncOrderJob(jobConfiguration)
       }
     }
+
     catch (e) {
+      console.error(e)
       throw (e)
     }
 
     return true
   }
+
+  // async handleSyncOrderJob_OLD(jobConfiguration: JobConfiguration) {
+  //   const { entityReferenceId, config, entityType, tenantId } = jobConfiguration
+  //   const ecommercePlatform = await this.ecommercePlatformsService.findOne(entityReferenceId)
+
+  //   try {
+  //     if (ecommercePlatform.name === 'shopify') {
+  //       await this.handleSyncShopifyOrders(config as ShopifyConfig, tenantId)
+  //     }
+  //   }
+  //   catch (e) {
+  //     throw (e)
+  //   }
+
+  //   return true
+  // }
 }

@@ -40,7 +40,7 @@ export class ClientsService {
 
 
   async getProductSyncJobConfigurations(clientId: number): Promise<SupplierProductSyncJobConfiguration[]> {
-    const jobConfigurations = await this.jobConfigurationsService.search(clientId, JobActionType.SupplierSyncProducts)
+    const jobConfigurations = await this.jobConfigurationsService.search(clientId, JobActionType.SyncProducts)
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {
       const supplierId = jobConfiguration.entityReferenceId
