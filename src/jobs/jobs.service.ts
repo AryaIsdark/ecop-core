@@ -24,14 +24,16 @@ export class JobsService {
 
   }
 
-  async create(createJobDto: CreateJobDto) {
-    const jobConfiguration = await this.jobConfigurationService.findOne(createJobDto.jobConfigurationId)
+  async processJob(jobId: number) {
+    const currentJob = await this.repository.findOne({where: {id : jobId}})
+    const jobConfiguration = await this.jobConfigurationService.findOne(currentJob.entityReferenceId)
     if (!jobConfiguration) {
       // handle not found
-      return `Unable to find job configuration with id ${createJobDto.jobConfigurationId}`
+      console.log(`Unable to find job configuration with id ${currentJob.entityReferenceId}`)
+      return `Unable to find job configuration with id ${currentJob.entityReferenceId}`
     }
 
-    const job = await this.addNewJob(jobConfiguration.id, jobConfiguration.tenantId)
+    const job = await this.updateStatus(currentJob.id, JobStatus.Processing)
 
     try {
       if (jobConfiguration.actionType === JobActionType.SyncProducts) {
@@ -43,9 +45,10 @@ export class JobsService {
       if(jobConfiguration.actionType === JobActionType.SyncInventory){
         await this.inventorySyncService.handleSyncInventoryJob(jobConfiguration)
       } 
+     
       this.updateStatus(job.id, JobStatus.Done)
 
-      return `Succesfully ran job with configuration id ${createJobDto.jobConfigurationId}`
+      return `Succesfully ran job with configuration id ${jobConfiguration.id}`
     }
     catch (e) {
       this.updateStatus(job.id, JobStatus.Failed)
@@ -54,7 +57,7 @@ export class JobsService {
 
   async addNewJob(entityReferenceId: number, tenantId: number) {
     const newJob = new Job()
-    newJob.status = JobStatus.Processing;
+    newJob.status = JobStatus.Queued;
     newJob.entityReferenceId = entityReferenceId;
     newJob.tenantId = tenantId
     return await this.repository.save(newJob)

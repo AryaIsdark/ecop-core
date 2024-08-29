@@ -9,9 +9,7 @@ export class QueueProcessor {
   ) { }
 
   @Process('run-job')
-  async handleRunJob(job: Job<{jobConfigurationId: number}>) {
-    console.log(`I ran for ${job.data}`)
-    await this.jobsService.create({jobConfigurationId : job.data as unknown as number })
-    
+  async handleRunJob(job: Job<{jobId: number}>) {
+    await this.jobsService.processJob(job.data as unknown as number)
   }
 }

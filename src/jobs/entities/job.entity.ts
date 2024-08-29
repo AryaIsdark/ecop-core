@@ -9,6 +9,7 @@ export type JobsSearchParams = {
 }
 
 export enum JobStatus {
+    Queued = 'queued',
     Processing = 'processing',
     Done = 'Done',
     Failed = 'failed'
