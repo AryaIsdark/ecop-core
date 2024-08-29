@@ -33,7 +33,7 @@ export class JobsService {
       return `Unable to find job configuration with id ${currentJob.entityReferenceId}`
     }
 
-    const job = await this.updateStatus(currentJob.id, JobStatus.Processing)
+    await this.updateStatus(currentJob.id, JobStatus.Processing)
 
     try {
       if (jobConfiguration.actionType === JobActionType.SyncProducts) {
@@ -46,12 +46,12 @@ export class JobsService {
         await this.inventorySyncService.handleSyncInventoryJob(jobConfiguration)
       } 
      
-      this.updateStatus(job.id, JobStatus.Done)
+      this.updateStatus(currentJob.id, JobStatus.Done)
 
       return `Succesfully ran job with configuration id ${jobConfiguration.id}`
     }
     catch (e) {
-      this.updateStatus(job.id, JobStatus.Failed)
+      this.updateStatus(currentJob.id, JobStatus.Failed)
     }
   }
 
