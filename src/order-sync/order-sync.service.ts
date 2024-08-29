@@ -3,7 +3,6 @@ import { CreateOrderSyncDto } from './dto/create-order-sync.dto';
 import { UpdateOrderSyncDto } from './dto/update-order-sync.dto';
 import { OrdersService } from 'src/orders';
 import { EntityType, JobConfiguration } from 'src/job-configurations';
-import axios from 'axios';
 import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/shopify-connector.service';
 import { EcommercePlatformsService } from 'src/ecommerce-platforms';
 import { OrderLinesService } from 'src/order-lines';
@@ -45,7 +44,13 @@ export class OrderSyncService {
         const newOrder = await this.ordersService.create({ ...order, clientId })
         if (newOrder.id) {
           for (const lineItem of order.lineItems) {
-            await this.orderLinesService.create({ orderId: newOrder.id, clientId, product_sku: lineItem.product_sku, product_ean: lineItem.product_sku, quantity: 1 })
+            await this.orderLinesService.create({
+              orderId: newOrder.id,
+              clientId, product_sku:
+                lineItem.product_sku,
+              product_ean: lineItem.product_sku,
+              quantity: 1 //TODO Change to actual quantity
+            })
           }
         }
       }
