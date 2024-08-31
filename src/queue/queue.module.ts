@@ -9,6 +9,10 @@ import { JobConfigurationsModule } from 'src/job-configurations';
   imports: [
     BullModule.registerQueue({
       name: 'queue',
+      redis: {
+        host: "redis://red-cio50jl9aq06u3mln3p0",
+        port: 6379
+      }
     }),
     JobsModule,
     JobConfigurationsModule,
