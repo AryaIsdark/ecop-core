@@ -10,9 +10,12 @@ import { JobConfigurationsModule } from 'src/job-configurations';
     BullModule.registerQueue({
       name: 'queue',
       redis: {
-        host: "redis://red-cio50jl9aq06u3mln3p0",
-        port: 6379
-      }
+        host: 'oregon-redis.render.com',
+        port: 6379, // Default Redis port
+        username: 'red-cr9lcm56l47c73cpmrc0',
+        password: '083tX07y8O8XX2a5fNXBBYCV0HAydfTR',
+        tls: {}, // Empty object enables SSL/TLS
+      },
     }),
     JobsModule,
     JobConfigurationsModule,
