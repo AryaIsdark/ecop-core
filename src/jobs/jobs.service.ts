@@ -9,6 +9,7 @@ import { JobActionType } from 'src/job-configurations/entities/job-configuration
 import { ProductSyncService } from 'src/product-sync/product-sync.service';
 import { OrderSyncService } from 'src/order-sync/order-sync.service';
 import { InventorySyncService } from 'src/inventory-sync/inventory-sync.service';
+import { WebAutomationsService } from 'src/web-automations/web-automations.service';
 
 @Injectable()
 export class JobsService {
@@ -19,7 +20,8 @@ export class JobsService {
     private readonly jobConfigurationService: JobConfigurationsService,
     private readonly productSyncService : ProductSyncService,
     private readonly orderSyncService : OrderSyncService,
-    private readonly inventorySyncService : InventorySyncService
+    private readonly inventorySyncService : InventorySyncService,
+    private readonly webAutomationService : WebAutomationsService
   ) {
 
   }
@@ -45,6 +47,9 @@ export class JobsService {
       if(jobConfiguration.actionType === JobActionType.SyncInventory){
         await this.inventorySyncService.handleSyncInventoryJob(jobConfiguration)
       } 
+      if(jobConfiguration.actionType === JobActionType.WebAutomation){
+        await this.webAutomationService.handleWebAutomationJob(jobConfiguration)
+      }
      
       this.updateStatus(currentJob.id, JobStatus.Done)
 

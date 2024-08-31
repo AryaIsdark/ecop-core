@@ -35,30 +35,30 @@ export class ClientsService {
     private readonly ecommercePlatformService: EcommercePlatformsService,
     private readonly jobConfigurationsService: JobConfigurationsService,
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService,
-    private readonly jobsService : JobsService
+    private readonly jobsService: JobsService
   ) { }
 
 
-  async getProductSyncJobConfigurations(clientId: number): Promise<SupplierProductSyncJobConfiguration[]> {
-    const jobConfigurations = await this.jobConfigurationsService.search(clientId, JobActionType.SyncProducts)
+  async getSupplierJobConfigurations(clientId: number): Promise<SupplierProductSyncJobConfiguration[]> {
+    const jobConfigurations = await this.jobConfigurationsService.query(clientId, { entityType: EntityType.supplier })
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {
       const supplierId = jobConfiguration.entityReferenceId
       const supplier = await this.suppliersService.findOne(supplierId)
-      const jobs = await this.jobsService.search({entityReferenceId : jobConfiguration.id})
+      const jobs = await this.jobsService.search({ entityReferenceId: jobConfiguration.id })
       mappedJobConfigurations.push({ ...jobConfiguration, supplier, jobs })
     }
 
     return mappedJobConfigurations
   }
-  
+
   async getWarehouseManagementSystemJobConfigurations(clientId: number): Promise<EcommercePlatformJobConfiguration[]> {
-    const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.warehouseManagemenSystem})
+    const jobConfigurations = await this.jobConfigurationsService.query(clientId, { entityType: EntityType.warehouseManagemenSystem })
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {
       const warehouseManagementSystemId = jobConfiguration.entityReferenceId
       const warehouseManagementSystem = await this.warehouseManagementSystemsService.findOne(warehouseManagementSystemId)
-      const jobs = await this.jobsService.search({entityReferenceId : jobConfiguration.id})
+      const jobs = await this.jobsService.search({ entityReferenceId: jobConfiguration.id })
       mappedJobConfigurations.push({ ...jobConfiguration, warehouseManagementSystem, jobs })
     }
 
@@ -66,15 +66,15 @@ export class ClientsService {
   }
 
   async getEcommercePlatofmJobConfigurations(clientId: number): Promise<EcommercePlatformJobConfiguration[]> {
-    const jobConfigurations = await this.jobConfigurationsService.query(clientId, {entityType: EntityType.ecommercePlatform})
+    const jobConfigurations = await this.jobConfigurationsService.query(clientId, { entityType: EntityType.ecommercePlatform })
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {
       const ecommercePlatformId = jobConfiguration.entityReferenceId
       const ecommercePlatform = await this.ecommercePlatformService.findOne(ecommercePlatformId)
-      const jobs = await this.jobsService.search({entityReferenceId : jobConfiguration.id})
+      const jobs = await this.jobsService.search({ entityReferenceId: jobConfiguration.id })
       mappedJobConfigurations.push({ ...jobConfiguration, ecommercePlatform, jobs })
     }
-  
+
     return mappedJobConfigurations
   }
 
@@ -93,12 +93,12 @@ export class ClientsService {
     return supplierOptions
   }
 
-  async getTenantReferenceData(tenantId: number){
+  async getTenantReferenceData(tenantId: number) {
     const tenantSupplierOptions = await this.getTenantSupplierOptions(tenantId)
     const tenantWmsOptions = await this.getTenantWmsOptions(tenantId)
     const tenantEcommercePlatformOptions = await this.getTenantEcommercePlatformOptions(tenantId)
 
-    return {tenantSupplierOptions, tenantEcommercePlatformOptions, tenantWmsOptions}
+    return { tenantSupplierOptions, tenantEcommercePlatformOptions, tenantWmsOptions }
 
   }
 

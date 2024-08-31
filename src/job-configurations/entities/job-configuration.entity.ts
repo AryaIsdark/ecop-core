@@ -4,7 +4,9 @@ export enum JobActionType {
   SyncProducts = 'sync-products',
   SyncOrders = 'sync-orders',
   SyncInventory = 'sync-inventory',
-  SyncCustomers = 'sync-customers'
+  SyncCustomers = 'sync-customers',
+  WebAutomation = 'web-automation'
+
 }
 
 export enum EntityType {
