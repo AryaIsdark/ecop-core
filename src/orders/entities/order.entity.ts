@@ -31,6 +31,4 @@ export class Order extends BaseEntity {
   @Column({ nullable: true })
   clientId: number;
 
-  @OneToMany(() => OrderLine, orderLine => orderLine.order)
-  orderLines: OrderLine[];
 }

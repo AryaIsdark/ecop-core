@@ -19,7 +19,4 @@ export class OrderLine extends BaseEntity {
    
     @Column()
     orderId: number;
-
-    @ManyToOne(() => Order, order => order.orderLines, { onDelete: 'CASCADE' })
-    order: Order;
 }
