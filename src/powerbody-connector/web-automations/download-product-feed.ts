@@ -3,7 +3,7 @@ import { PowerbodyWebAutomationConfig } from '../powerbody-connector.service';
 
 export const downloadProductFeed = async (config: PowerbodyWebAutomationConfig, tenantId: number, downloadPath: string) => {
   const browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     args: ['--no-sandbox'], // Use this option if you encounter sandbox issues
   });
   const page = await browser.newPage();
