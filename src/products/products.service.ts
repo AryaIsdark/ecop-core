@@ -53,7 +53,7 @@ export class ProductsService {
     const productsWithInventory = []
 
     for (const product of products) {
-      const inventoryInfo = await this.inventoryService.findWithEan(product.ean)
+      const inventoryInfo = await this.inventoryService.findWithEan(product.ean, product.tenantId)
       const supplier = await this.suppliersService.findOne(product.supplierId);
       productsWithInventory.push({ ...product, inventoryInfo, supplier })
     }
