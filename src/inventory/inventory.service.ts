@@ -24,8 +24,8 @@ export class InventoryService {
     return `This action returns all inventory`;
   }
 
-  findWithEan(ean: string) {
-    return this.repository.findOne({ where: { product_ean: ean } });
+  findWithEan(ean: string, clientId: number) {
+    return this.repository.findOne({ where: { product_ean: ean, clientId } });
   }
   findOne(id: number) {
     return this.repository.findOne({ where: { id } });

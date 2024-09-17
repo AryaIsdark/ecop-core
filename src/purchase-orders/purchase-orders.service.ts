@@ -37,7 +37,7 @@ export class PurchaseOrdersService {
       if (!productEANs.has(orderLine.product_ean)) {
         const product = await this.productRepository.findOne({ where: { tenantId: purchaseOrder.clientId, supplierId: purchaseOrder.supplierId, ean: orderLine.product_ean } })
         if (product) {
-          const inventory = await this.inventoryService.findWithEan(product.ean)
+          const inventory = await this.inventoryService.findWithEan(product.ean, product.tenantId)
           // Check the inventory on that product
           if (inventory.sellable_number_of_items <= 0) {
             productEANs.add(orderLine.product_ean)
