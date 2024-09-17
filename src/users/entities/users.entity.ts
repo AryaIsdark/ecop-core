@@ -1,6 +1,11 @@
 import { BaseEntity } from 'src/base/base-entity';
 import { Entity, Column } from 'typeorm';
 
+export enum AppRole {
+  ECOP_ADMIN = 'ecop-admin',
+  TENANT_ADMIN = 'tenant-admin',
+  TENANT_USER = 'tenant-user'
+}
 @Entity()
 export class User extends BaseEntity {
   @Column()
@@ -19,5 +24,8 @@ export class User extends BaseEntity {
   email: string;
 
   @Column()
-  clientId: number;
+  clientId: number
+
+  @Column({nullable: true})
+  role: AppRole
 }

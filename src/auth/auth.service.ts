@@ -1,12 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/users';
-
-export enum AppRole {
-  ECOP_ADMIN = 'ecop-admin',
-  TENANT_ADMIN = 'tenant-admin',
-  TENANT_USER = 'tenant-user'
-}
+import { AppRole } from 'src/users/entities';
 
 export type JwtTokenProps = {
   username: string,
@@ -32,7 +27,7 @@ export class AuthService {
     if (user?.password !== pass) {
       throw new UnauthorizedException();
     }
-    const payload = { sub: user.id, username: user.username, clientId: user.clientId, role: AppRole.ECOP_ADMIN };
+    const payload = { sub: user.id, username: user.username, clientId: user.clientId, role: user.role ?? AppRole.TENANT_USER };
 
     return {
       access_token: await this.jwtService.signAsync(payload),
