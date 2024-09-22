@@ -5,6 +5,8 @@ import axios from 'axios';
 import { Order, OrderStatus } from 'src/orders';
 import { CreateOrderDto } from 'src/orders/dto/create-order.dto';
 import { OrderLine } from 'src/order-lines';
+import { initializeShopify } from './utilities/initialize-shopify';
+import { GET_ORDERS } from './grqphql/queries/get-orders';
 
 export interface ShopifyConfig {
   storeId: string
@@ -15,6 +17,51 @@ const API_VERSION = '2024-04'
 
 @Injectable()
 export class ShopifyConnectorService {
+
+  async getBulkOrders(shopifyConfig: ShopifyConfig): Promise<CreateOrderDto[]> {
+    try {
+      const graphqlUrl = `https://${shopifyConfig.storeId}.myshopify.com/admin/api/${API_VERSION}/graphql.json`
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      const yesterdayISO = yesterday.toISOString();
+      
+      const ordersResponse = await axios.post(
+        graphqlUrl,
+        {
+          query: GET_ORDERS, variables: { query: `created_at>=${yesterdayISO}` }
+        },
+        {
+          headers: { "X-Shopify-Access-Token": shopifyConfig.accessToken }
+        }
+      )
+
+      console.log(ordersResponse)
+
+      return ordersResponse.data.data.orders.edges.map((shopifyOrder) => {
+        console.log(shopifyOrder)
+        const orderLines: Partial<OrderLine[]> = shopifyOrder.line_items.map((shopifyLineItem) => {
+          const orderLine: Partial<OrderLine> = {
+            product_sku: shopifyLineItem.sku
+          }
+          return orderLine
+        })
+
+        const order: CreateOrderDto = {
+          reference: shopifyOrder.confirmation_number,
+          totalAmount: shopifyOrder.current_total_price,
+          status: OrderStatus.CREATED,
+          lineItems: orderLines,
+          clientId: 0
+        }
+        return order
+      })
+
+    }
+    catch (e) {
+      console.error(e)
+    }
+  }
 
   async getOrders(shopifyConfig: ShopifyConfig): Promise<CreateOrderDto[]> {
 

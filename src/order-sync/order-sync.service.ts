@@ -39,7 +39,7 @@ export class OrderSyncService {
 
   async handleSyncShopifyOrders(config: ShopifyConfig, clientId) {
     try {
-      const orders = await this.shopifyConnectorService.getOrders(config as ShopifyConfig)
+      const orders = await this.shopifyConnectorService.getBulkOrders(config as ShopifyConfig)
       for (const order of orders) {
         const newOrder = await this.ordersService.create({ ...order, clientId })
         if (newOrder.id) {
