@@ -68,6 +68,7 @@ export class PowerbodyConnectorService {
       const rootFolder = process.cwd();
       const fileName = 'powerbody.xls';
       const filePath = path.join(rootFolder, folderPath, fileName);
+      console.info('fiiiiiiiiiiiiile',filePath)
 
       // Process the Excel product feed
       const powerbody_products = await processExcelProductFeed(filePath, config.productMappingKeys);
