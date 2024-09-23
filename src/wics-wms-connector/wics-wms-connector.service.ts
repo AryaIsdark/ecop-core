@@ -13,7 +13,7 @@ export interface WicsWmsConfig {
 export class WicsWmsConnectorService {
 
   async getArticlesInventory(config: WicsWmsConfig) {
-    const apiUrl = `${config.apiBaseUrl}/item`
+    const apiUrl = `${config.apiBaseUrl}/stock`
     try{
       const results = await axios.get(apiUrl, {headers: {Authorization: config.authorization }})
       return results
