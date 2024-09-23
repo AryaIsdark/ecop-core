@@ -26,7 +26,7 @@ export const downloadProductFeed = async (config: PowerbodyWebAutomationConfig, 
       downloadPath,
     });
 
-    await page.waitForNetworkIdle(); // Wait until the download is complete
+    await page.waitForNetworkIdle({timeout : 60000}); // Wait until the download is complete
 
 
     return 'Successfully downloaded and renamed the file';
