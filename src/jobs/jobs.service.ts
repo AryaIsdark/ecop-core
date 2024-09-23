@@ -60,6 +60,17 @@ export class JobsService {
     }
   }
 
+  async addNewJobAdhoc(entityReferenceId: number, tenantId: number) {
+    const newJob = new Job()
+    newJob.status = JobStatus.Queued;
+    newJob.entityReferenceId = entityReferenceId;
+    newJob.tenantId = tenantId
+    const savedJob = await this.repository.save(newJob)
+    if(savedJob.id){
+     return await this.processJob(savedJob.id)
+    }
+  }
+
   async addNewJob(entityReferenceId: number, tenantId: number) {
     const newJob = new Job()
     newJob.status = JobStatus.Queued;
