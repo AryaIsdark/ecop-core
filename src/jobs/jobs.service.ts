@@ -60,15 +60,22 @@ export class JobsService {
     }
   }
 
-  async addNewJobAdhoc(entityReferenceId: number, tenantId: number) {
-    const newJob = new Job()
-    newJob.status = JobStatus.Queued;
-    newJob.entityReferenceId = entityReferenceId;
-    newJob.tenantId = tenantId
-    const savedJob = await this.repository.save(newJob)
-    if(savedJob.id){
-     return await this.processJob(savedJob.id)
+  async addNewJobAdhoc(jobConfigurationId: number) {
+    const jobConfiguration = await this.jobConfigurationService.findOne(jobConfigurationId)
+   
+    if(jobConfiguration?.id){
+      const newJob = new Job()
+      newJob.status = JobStatus.Queued;
+      newJob.entityReferenceId = jobConfiguration.id;
+      newJob.tenantId = jobConfiguration.tenantId
+      const savedJob = await this.repository.save(newJob)
+      if(savedJob.id){
+       return await this.processJob(savedJob.id)
+      }
     }
+    
+    return 'could not find a job configuration with the given ID'
+   
   }
 
   async addNewJob(entityReferenceId: number, tenantId: number) {
