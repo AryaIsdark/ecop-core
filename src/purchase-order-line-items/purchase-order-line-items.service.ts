@@ -76,8 +76,8 @@ export class PurchaseOrderLineItemsService {
   }
 
 
-  async getLineItemsForPurchaseOrder(purchaseOrderId: number) : Promise<PurchaseOrderLineItem[]> {
-    const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id : 'ASC'} })
+  async getLineItemsForPurchaseOrder(purchaseOrderId: number): Promise<PurchaseOrderLineItem[]> {
+    const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } })
     const mappedLineItems = []
     for (const lineItem of lineItems) {
       const product = await this.productsService.findOne(lineItem.productId)
@@ -103,22 +103,27 @@ export class PurchaseOrderLineItemsService {
     }
   }
 
-  async export(purchaseOrderId: number, exportFormat: ExportFormat){
-    const lineItems = await this.repository.find({where : { purchaseOrderId }, order: {id: 'ASC'}})
+  async export(purchaseOrderId: number, exportFormat: ExportFormat) {
+    const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } })
+    const mappedLineItems = []
+    for(const lineItem of lineItems){
+      const product = await this.productsService.findOne(lineItem.productId)
+      mappedLineItems.push({ ...lineItem, product })
+    }
 
     const purchaseOrderKeys: CsvKeyMapping<PurchaseOrderLineItem>[] = [
-      { field: 'product.ean_original', title: 'EAN' },
+      { field: 'product.ean', title: 'EAN' },
       { field: 'quantity', title: 'Quantity' },
     ];
 
-    if(exportFormat === ExportFormat.CSV){
+    if (exportFormat === ExportFormat.CSV) {
       // Handle CSV export (.csv)
-      return exportToCsv(lineItems, purchaseOrderKeys, 'some file' )
+      return exportToCsv(mappedLineItems, purchaseOrderKeys, 'some file')
     }
-    if(exportFormat === ExportFormat.EXCEL){
+    if (exportFormat === ExportFormat.EXCEL) {
       // Handle EXCEL export (.excel)
     }
-    if(exportFormat === ExportFormat.TEXT){
+    if (exportFormat === ExportFormat.TEXT) {
       // Handle TEXT export (.txt)
     }
 
