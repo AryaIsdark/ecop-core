@@ -76,7 +76,7 @@ export class PurchaseOrderLineItemsService {
   }
 
 
-  async getLineItemsForPurchaseOrder(purchaseOrderId: number) {
+  async getLineItemsForPurchaseOrder(purchaseOrderId: number) : Promise<PurchaseOrderLineItem[]> {
     const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id : 'ASC'} })
     const mappedLineItems = []
     for (const lineItem of lineItems) {

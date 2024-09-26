@@ -98,8 +98,9 @@ export class PurchaseOrdersService {
     const lineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(id)
     let purchaseOrderTotalPrice = 0
     if (lineItems.length) {
-      for (const lineItem of lineItems) {
-        const lineItemTotalPrice = Number(lineItem.product.price) * lineItem.quantity
+      for (const lineItem  of lineItems) {
+        const product = await this.productRepository.findOne({where: {id: lineItem.productId }})
+        const lineItemTotalPrice = Number(product.price) * lineItem.quantity
         purchaseOrderTotalPrice = purchaseOrderTotalPrice + lineItemTotalPrice
       }
     }
