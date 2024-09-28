@@ -4,10 +4,11 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseConfigService } from './database-config/database-config.service';
 import { DataSourceOptions } from 'typeorm';
+import { UserSettingsModule } from './user-settings/user-settings.module';
 
 @Global()
 @Module({
-  imports: [],
+  imports: [UserSettingsModule],
   providers: []
 })
 
