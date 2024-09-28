@@ -18,6 +18,7 @@ export interface CsvKeyMapping<T> {
 export const exportToCsv = async <T>(
   data: T[],
   keys: CsvKeyMapping<T>[],
+  hasHeader: boolean,
   fileName: string,
   csvOptions: converter.Json2CsvOptions = {},
   rootFolder: string = process.cwd(),
@@ -33,7 +34,8 @@ export const exportToCsv = async <T>(
 
     await ensureDirectoryExistence(filePath);
 
-    await fs.promises.writeFile(filePath, csvWithoutHeaders);
+    // await fs.promises.writeFile(filePath, csvWithoutHeaders);
+    await fs.promises.writeFile(filePath, hasHeader ? csv : csvWithoutHeaders );
     return filePath;
   } catch (e) {
     console.error(e);

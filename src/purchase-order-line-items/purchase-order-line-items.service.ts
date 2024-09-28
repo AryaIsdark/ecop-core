@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { ProductsService } from 'src/products';
 import { ExportFormat } from 'src/base/export-format';
 import { CsvKeyMapping, exportToCsv } from 'src/utils/export-csv/export-csv';
+import { ExportPurchaseOrderLineItemsParams } from './dto/export-purchase-order-line-items.dto';
 
 @Injectable()
 export class PurchaseOrderLineItemsService {
@@ -103,7 +104,26 @@ export class PurchaseOrderLineItemsService {
     }
   }
 
-  async export(purchaseOrderId: number, exportFormat: ExportFormat) {
+  getExportFields(fields: string[]): CsvKeyMapping<PurchaseOrderLineItem>[]{
+    const keys = []
+    if(fields.includes('name')){
+      keys.push({ field: 'product.name', title: 'Name' })
+    }
+    if(fields.includes('ean')){
+      keys.push({ field: 'product.ean', title: 'EAN' })
+    }
+    if(fields.includes('quantity')){
+     keys.push({ field: 'quantity', title: 'Quantity' })
+    }
+    if(fields.includes('sku')){
+      keys.push({ field: 'product.sku', title: 'SKU' })
+    }
+
+    return keys
+  }
+
+  async export(params: ExportPurchaseOrderLineItemsParams) {
+    const {purchaseOrderId, exportFormat, fields, showHeader = true} = params
     const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } })
     const mappedLineItems = []
     for(const lineItem of lineItems){
@@ -111,14 +131,11 @@ export class PurchaseOrderLineItemsService {
       mappedLineItems.push({ ...lineItem, product })
     }
 
-    const purchaseOrderKeys: CsvKeyMapping<PurchaseOrderLineItem>[] = [
-      { field: 'product.ean', title: 'EAN' },
-      { field: 'quantity', title: 'Quantity' },
-    ];
+    const purchaseOrderKeys = this.getExportFields(fields)
 
     if (exportFormat === ExportFormat.CSV) {
       // Handle CSV export (.csv)
-      return exportToCsv(mappedLineItems, purchaseOrderKeys, 'some file')
+      return exportToCsv(mappedLineItems, purchaseOrderKeys, showHeader,  'some file')
     }
     if (exportFormat === ExportFormat.EXCEL) {
       // Handle EXCEL export (.excel)
