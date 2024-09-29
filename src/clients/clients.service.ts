@@ -38,6 +38,23 @@ export class ClientsService {
     private readonly jobsService: JobsService
   ) { }
 
+  async getClientSuppliers(clientId: number): Promise<Supplier[]> {
+    const jobConfigurations = await this.jobConfigurationsService.query(clientId, { entityType: EntityType.supplier });
+    const clientSuppliers: Supplier[] = [];
+    const supplierIds = new Set<number>();
+  
+    for (const jobConfiguration of jobConfigurations) {
+      const supplier = await this.suppliersService.findOne(jobConfiguration.entityReferenceId);
+      if (!supplierIds.has(supplier.id)) { 
+        supplierIds.add(supplier.id);
+        clientSuppliers.push(supplier);
+      }
+    }
+  
+    return clientSuppliers;
+  }
+  
+
 
   async getSupplierJobConfigurations(clientId: number): Promise<SupplierProductSyncJobConfiguration[]> {
     const jobConfigurations = await this.jobConfigurationsService.query(clientId, { entityType: EntityType.supplier })
