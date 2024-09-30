@@ -89,9 +89,11 @@ export class ProductsService {
       await this.entityManager.transaction(async (transactionalEntityManager) => {
         for (const product of products) {
           if (product) {
-            transactionalEntityManager.upsert(
+            const { id, ...productDataWithoutId } = product; // Exclude 'id' from the product data
+            
+            await transactionalEntityManager.upsert(
               Product,
-              { ...product, supplierId, tenantId },
+              { ...productDataWithoutId, supplierId, tenantId }, // Insert product data without 'id'
               ['sku', 'tenantId'],
             );
           }
@@ -102,5 +104,6 @@ export class ProductsService {
       throw error;
     }
   }
+  
 
 }
