@@ -15,13 +15,34 @@ export class OrderLinesService {
   ) {
 
   }
+
+  async upsert(createOrderLineDto: CreateOrderLineDto) {
+    // Check if an order line with the same product_sku and orderId already exists
+    let existingOrderLine = await this.repository.findOne({
+      where: {
+        product_sku: createOrderLineDto.product_sku,
+        orderId: createOrderLineDto.orderId
+      }
+    });
+
+    if (existingOrderLine) {
+      await this.update(existingOrderLine.id, createOrderLineDto)
+
+      return 'successfully updated order line';
+    } else {
+      await this.create(createOrderLineDto)
+
+      return 'successfully created order line';
+    }
+  }
+
   async create(createOrderLineDto: CreateOrderLineDto) {
     const orderLine = new OrderLine();
     orderLine.clientId = createOrderLineDto.clientId
     orderLine.orderId = createOrderLineDto.orderId
     orderLine.product_sku = createOrderLineDto.product_sku
     orderLine.product_ean = createOrderLineDto.product_ean
-    orderLine.quantity = 1
+    orderLine.quantity = createOrderLineDto.quantity
     await this.repository.save(orderLine)
 
     await this.productAnalyticsService.create({
@@ -29,7 +50,7 @@ export class OrderLinesService {
       orderId: orderLine.orderId,
       product_ean: orderLine.product_ean,
       product_sku: orderLine.product_sku,
-      count: 1
+      count: orderLine.quantity
     })
 
     return 'succesfully created order line'
@@ -43,9 +64,26 @@ export class OrderLinesService {
     return `This action returns a #${id} orderLine`;
   }
 
-  update(id: number, updateOrderLineDto: UpdateOrderLineDto) {
-    return `This action updates a #${id} orderLine`;
+  async update(id: number, updateOrderLineDto: UpdateOrderLineDto) {
+    // Find the existing order line by ID
+    const existingOrderLine = await this.repository.findOne({where: {id}});
+
+    if (!existingOrderLine) {
+      throw new Error('Order line not found');
+    }
+
+    // Update the properties of the existing order line
+    existingOrderLine.clientId = updateOrderLineDto.clientId ?? existingOrderLine.clientId;
+    existingOrderLine.product_sku = updateOrderLineDto.product_sku ?? existingOrderLine.product_sku;
+    existingOrderLine.product_ean = updateOrderLineDto.product_ean ?? existingOrderLine.product_ean;
+    existingOrderLine.quantity = updateOrderLineDto.quantity ?? existingOrderLine.quantity;
+
+    // Save the updated order line
+    await this.repository.save(existingOrderLine);
+
+    return 'successfully updated order line';
   }
+
 
   remove(id: number) {
     return `This action removes a #${id} orderLine`;

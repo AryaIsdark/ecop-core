@@ -1,4 +1,4 @@
-import Shopify from 'shopify-api-node'
+import *  as Shopify from 'shopify-api-node'
 import { ShopifyConfig } from '../shopify-connector.service'
 
 export const  initializeShopify = async(shopifyConfig: ShopifyConfig) : Promise<Shopify> => {

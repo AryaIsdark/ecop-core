@@ -41,15 +41,15 @@ export class OrderSyncService {
     try {
       const orders = await this.shopifyConnectorService.getBulkOrders(config as ShopifyConfig)
       for (const order of orders) {
-        const newOrder = await this.ordersService.create({ ...order, clientId })
+        const newOrder = await this.ordersService.upsert({ ...order, clientId })
         if (newOrder.id) {
           for (const lineItem of order.lineItems) {
-            await this.orderLinesService.create({
+            await this.orderLinesService.upsert({
               orderId: newOrder.id,
-              clientId, product_sku:
-                lineItem.product_sku,
+              clientId, 
+              product_sku: lineItem.product_sku,
               product_ean: lineItem.product_sku,
-              quantity: 1 //TODO Change to actual quantity
+              quantity: lineItem.quantity ?? 1
             })
           }
         }

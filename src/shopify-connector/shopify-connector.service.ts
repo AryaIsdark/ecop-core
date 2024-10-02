@@ -2,11 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { CreateShopifyConnectorDto } from './dto/create-shopify-connector.dto';
 import { UpdateShopifyConnectorDto } from './dto/update-shopify-connector.dto';
 import axios from 'axios';
-import { Order, OrderStatus } from 'src/orders';
+import { OrderStatus } from 'src/orders';
 import { CreateOrderDto } from 'src/orders/dto/create-order.dto';
 import { OrderLine } from 'src/order-lines';
-import { initializeShopify } from './utilities/initialize-shopify';
-import { GET_ORDERS } from './grqphql/queries/get-orders';
+import { getOrdersQuery } from './grqphql/queries/get-orders';
+import { runBulkQuery } from './utilities/run-bulk-query';
+import { pollBulkOperationStatus } from './utilities/poll-bulk-operation-status';
+import { fetchBulkOperationResults } from './utilities/fetch-bulk-operation-results';
 
 export interface ShopifyConfig {
   storeId: string
@@ -17,51 +19,76 @@ const API_VERSION = '2024-04'
 
 @Injectable()
 export class ShopifyConnectorService {
+   
+  getAllOrders(orders){
+    const data = []
+    const mappedData = []
+    for(const order of orders){
+      if(order.id){
+        data.push(order)
+      }
+    }
+
+    for(const order of data){
+      if(order.id){
+        const allChildrens = orders.filter((o)=> o.__parentId === order.id)
+        const lineItems = []
+        for(const child of allChildrens){
+          if(child.product){
+            lineItems.push(child)
+          }
+        }
+        mappedData.push({...order, lineItems})
+      }
+    }
+
+    return mappedData
+  }
+  
+
 
   async getBulkOrders(shopifyConfig: ShopifyConfig): Promise<CreateOrderDto[]> {
+
     try {
-      const graphqlUrl = `https://${shopifyConfig.storeId}.myshopify.com/admin/api/${API_VERSION}/graphql.json`
       const today = new Date();
       const yesterday = new Date(today);
       yesterday.setDate(today.getDate() - 1);
       const yesterdayISO = yesterday.toISOString();
-      
-      const ordersResponse = await axios.post(
-        graphqlUrl,
-        {
-          query: GET_ORDERS, variables: { query: `created_at>=${yesterdayISO}` }
-        },
-        {
-          headers: { "X-Shopify-Access-Token": shopifyConfig.accessToken }
+      const operationId = await runBulkQuery(shopifyConfig, getOrdersQuery(`created_at:>${yesterdayISO}`))
+      const resultUrl = await pollBulkOperationStatus(shopifyConfig, operationId);
+      const ordersResponse = await fetchBulkOperationResults(resultUrl)
+      const shopifyOrders  = this.getAllOrders(ordersResponse)
+      const orders = []
+      for (const shopifyOrder of shopifyOrders) {
+        // Using for loop for processing line items
+        const lineItems = [];
+        const shopifyLineItems = shopifyOrder.lineItems;
+        for (const shopifyLineItem of shopifyLineItems) {
+          const orderLine = {
+            product_sku: shopifyLineItem.sku,
+            quantity: shopifyLineItem.quantity
+          };
+          lineItems.push(orderLine);
         }
-      )
 
-      console.log(ordersResponse)
-
-      return ordersResponse.data.data.orders.edges.map((shopifyOrder) => {
-        console.log(shopifyOrder)
-        const orderLines: Partial<OrderLine[]> = shopifyOrder.line_items.map((shopifyLineItem) => {
-          const orderLine: Partial<OrderLine> = {
-            product_sku: shopifyLineItem.sku
-          }
-          return orderLine
-        })
-
-        const order: CreateOrderDto = {
-          reference: shopifyOrder.confirmation_number,
-          totalAmount: shopifyOrder.current_total_price,
+        const order = {
+          reference: shopifyOrder.confirmationNumber,
           status: OrderStatus.CREATED,
-          lineItems: orderLines,
+          lineItems: lineItems,
           clientId: 0
-        }
-        return order
-      })
+        };
+        orders.push(order);
+      }
 
-    }
-    catch (e) {
-      console.error(e)
+
+      return orders;
+
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      throw error;
     }
   }
+
 
   async getOrders(shopifyConfig: ShopifyConfig): Promise<CreateOrderDto[]> {
 

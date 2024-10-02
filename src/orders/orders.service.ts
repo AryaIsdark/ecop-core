@@ -13,6 +13,27 @@ export class OrdersService {
     ){
 
   }
+
+  async upsert(createOrderDto: CreateOrderDto): Promise<Order | null> {
+    // Check if an order with the same reference already exists
+    let existingOrder = await this.repository.findOne({ where: { reference: createOrderDto.reference } });
+
+    if (existingOrder) {
+        // Update the existing order if found
+        existingOrder.clientId = createOrderDto.clientId; // Assuming you want to set this as well
+        // Set other fields from createOrderDto as needed
+        return await this.repository.save(existingOrder);
+    } else {
+        // Create a new order if not found
+        const newOrder = new Order();
+        newOrder.clientId = createOrderDto.clientId;
+        newOrder.reference = createOrderDto.reference;
+        // Set other fields from createOrderDto as needed
+        return await this.repository.save(newOrder);
+    }
+}
+
+
   async create(createOrderDto: CreateOrderDto) : Promise<Order | null>{
     const newOrder = new Order()
     newOrder.clientId = 1
@@ -26,7 +47,7 @@ export class OrdersService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} order`;
+    return this.repository.find({where : {id}});
   }
 
   update(id: number, updateOrderDto: UpdateOrderDto) {
