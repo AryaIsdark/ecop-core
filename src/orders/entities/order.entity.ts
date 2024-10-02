@@ -32,3 +32,12 @@ export class Order extends BaseEntity {
   clientId: number;
 
 }
+
+
+
+export type OrdersQueryParams = {
+  pageNumber?: number;
+  pageSize?: number;
+  clientId?: number;
+  reference?: string;
+};
