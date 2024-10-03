@@ -64,9 +64,13 @@ export class OrderLinesService {
     return `This action returns a #${id} orderLine`;
   }
 
+  async getOrderLineItems(orderId: number) {
+    return await this.repository.find({ where: { orderId } })
+  }
+
   async update(id: number, updateOrderLineDto: UpdateOrderLineDto) {
     // Find the existing order line by ID
-    const existingOrderLine = await this.repository.findOne({where: {id}});
+    const existingOrderLine = await this.repository.findOne({ where: { id } });
 
     if (!existingOrderLine) {
       throw new Error('Order line not found');

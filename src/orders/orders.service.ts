@@ -5,12 +5,16 @@ import { Order, OrdersQueryParams } from './entities';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { Paginate } from 'src/base/paginate';
+import { OrderLinesService } from 'src/order-lines';
+import { ProductsService } from 'src/products';
 
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private readonly repository: Repository<Order>,
+    private readonly orderLinesService : OrderLinesService,
+    private readonly productsService : ProductsService
   ) {
 
   }
@@ -47,8 +51,17 @@ export class OrdersService {
     return this.repository.find();
   }
 
-  findOne(id: number) {
-    return this.repository.find({ where: { id } });
+  async findOne(id: number) {
+    const order =  await this.repository.findOne({ where: { id } });
+    const lineItems = await this.orderLinesService.getOrderLineItems(id)
+    const lineItemsWithProducts = []
+    for(const item of lineItems){
+      const products = await this.productsService.query({pageSize: 1, pageNumber: 1, ean: item.product_ean, tenantId: item.clientId})
+      const product = products.data[0]
+      lineItemsWithProducts.push({...item, product})
+    }
+
+    return {...order, lineItems: lineItemsWithProducts}
   }
 
   update(id: number, updateOrderDto: UpdateOrderDto) {
@@ -75,6 +88,17 @@ export class OrdersService {
 
     const [orders, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })
 
+    const mappedOrders = []
+
+    for(const order of orders){
+      const lineItems = this.orderLinesService.getOrderLineItems(order.id)
+      mappedOrders.push(
+        {
+          ...order,
+          lineItems
+        }
+      )
+    }
 
     return {
       count,
