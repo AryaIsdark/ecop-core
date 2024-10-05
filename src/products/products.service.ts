@@ -7,6 +7,7 @@ import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { SuppliersService } from 'src/suppliers';
 import { Paginate } from 'src/base/paginate';
+import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
 
 @Injectable()
@@ -39,7 +40,7 @@ export class ProductsService {
       whereConditions.tenantId =  params.tenantId 
     }
     if (params.supplierId) {
-      whereConditions.supplierId = params.tenantId
+      whereConditions.supplierId = params.supplierId
     }
     if (params.ean) {
       whereConditions.ean = ILike(`%${params.ean}%`) 
@@ -98,7 +99,7 @@ export class ProductsService {
             
             await transactionalEntityManager.upsert(
               Product,
-              { ...productDataWithoutId, supplierId, tenantId }, // Insert product data without 'id'
+              { ...productDataWithoutId, supplierId, tenantId, ean_normalized: normalizeEAN(product.ean) },
               ['sku', 'tenantId'],
             );
           }

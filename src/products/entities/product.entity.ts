@@ -31,6 +31,9 @@ export class Product {
   @Column({ nullable: true })
   supplierId: number;
 
+  @Column({ nullable: true })
+  ean_normalized: string;
+
   // @OneToMany(() => PurchaseOrderLineItem, (lineItem) => lineItem.product)
   // purchaseOrderLineItems: Promise<PurchaseOrderLineItem[]>;
 

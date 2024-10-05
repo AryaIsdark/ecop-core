@@ -15,6 +15,9 @@ export class OrderLine extends BaseEntity {
     quantity: number;
 
     @Column()
+    originalCreatedAt: Date;
+
+    @Column()
     clientId: number;
    
     @Column()

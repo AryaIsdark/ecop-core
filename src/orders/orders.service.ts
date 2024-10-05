@@ -33,6 +33,8 @@ export class OrdersService {
       const newOrder = new Order();
       newOrder.clientId = createOrderDto.clientId;
       newOrder.reference = createOrderDto.reference;
+      newOrder.originalCreatedAt = createOrderDto.originalCreatedAt
+      newOrder.totalAmount = createOrderDto.totalAmount.toString()
       // Set other fields from createOrderDto as needed
       return await this.repository.save(newOrder);
     }

@@ -48,6 +48,10 @@ export class PurchaseOrderLineItemsService {
     return await this.repository.save(linetItem)
   }
 
+  async getClientLineItems(clientId: number){
+    return await this.repository.find({where: {clientId}})
+  }
+
   findAll() {
     return this.repository.find();
   }

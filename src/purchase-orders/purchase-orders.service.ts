@@ -9,6 +9,7 @@ import { PurchaseOrderLineItemsService } from 'src/purchase-order-line-items';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { Product } from 'src/products';
 import { OrderLinesService } from 'src/order-lines';
+import { PurchaseOrderSuggestionsService } from 'src/purchase-order-suggestions';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -20,6 +21,7 @@ export class PurchaseOrdersService {
     private readonly suppliersService: SuppliersService,
     private readonly orderLinesService: OrderLinesService,
     private readonly purchaseOrderLineItemsService: PurchaseOrderLineItemsService,
+    private readonly purchaseOrderSuggestionService: PurchaseOrderSuggestionsService,
     private readonly inventoryService: InventoryService,
   ) {
 
@@ -52,15 +54,18 @@ export class PurchaseOrdersService {
   }
 
   async generateLineItemsFromSuggestion(purchaseOrderId){
-    const suggestions = await this.suggestLineItemsForPurchaseOrder(purchaseOrderId)
     const purchaseOrder = await this.findOne(purchaseOrderId);
+    const suggestions = await this.purchaseOrderSuggestionService.suggestPurchaseOrders(purchaseOrder.clientId, purchaseOrder.supplierId)
+
+    // const suggestions = await this.suggestLineItemsForPurchaseOrder(purchaseOrderId)
+    // const purchaseOrder = await this.findOne(purchaseOrderId);
     if(suggestions.length){
       for(const suggestion of suggestions){
         await this.purchaseOrderLineItemsService.create({
             clientId: purchaseOrder.clientId,
             purchaseOrderId: purchaseOrder.id,
             productId: suggestion.id,
-            quantity: 1, // TODO: Make a function to get quantity
+            quantity: suggestion.quantity,
             supplierId: purchaseOrder.supplierId
           })
       }
@@ -92,6 +97,10 @@ export class PurchaseOrdersService {
     }
 
     return mappedPurchaseOrders
+  }
+
+  async getClientPurchaseOrders(clientId: number){  
+    return await this.repository.find({where: {clientId}})
   }
 
   async getTotalPrice(id: number) {

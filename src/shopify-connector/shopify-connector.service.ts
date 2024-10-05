@@ -71,8 +71,10 @@ export class ShopifyConnectorService {
           lineItems.push(orderLine);
         }
 
-        const order = {
+        const order : CreateOrderDto = {
           reference: shopifyOrder.confirmationNumber,
+          originalCreatedAt: shopifyOrder.createdAt,
+          totalAmount: shopifyOrder.totalPriceSet?.shopMoney.amount,
           status: OrderStatus.CREATED,
           lineItems: lineItems,
           clientId: 0
@@ -108,6 +110,7 @@ export class ShopifyConnectorService {
         const order: CreateOrderDto = {
           reference: shopifyOrder.confirmation_number,
           totalAmount: shopifyOrder.current_total_price,
+          originalCreatedAt: shopifyOrder.created_at,
           status: OrderStatus.CREATED,
           lineItems: orderLines,
           clientId: 0

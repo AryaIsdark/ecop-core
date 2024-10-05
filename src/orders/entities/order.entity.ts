@@ -28,6 +28,9 @@ export class Order extends BaseEntity {
   @Column({ nullable: true })
   totalAmount: string;
 
+  @Column()
+  originalCreatedAt: Date
+
   @Column({ nullable: true })
   clientId: number;
 

@@ -49,7 +49,8 @@ export class OrderSyncService {
               clientId, 
               product_sku: lineItem.product_sku,
               product_ean: lineItem.product_sku,
-              quantity: lineItem.quantity ?? 1
+              quantity: lineItem.quantity ?? 1,
+              originalCreatedAt : newOrder.originalCreatedAt,
             })
           }
         }

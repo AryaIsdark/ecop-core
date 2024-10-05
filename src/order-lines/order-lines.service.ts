@@ -43,6 +43,7 @@ export class OrderLinesService {
     orderLine.product_sku = createOrderLineDto.product_sku
     orderLine.product_ean = createOrderLineDto.product_ean
     orderLine.quantity = createOrderLineDto.quantity
+    orderLine.originalCreatedAt = createOrderLineDto.originalCreatedAt
     await this.repository.save(orderLine)
 
     await this.productAnalyticsService.create({
@@ -62,6 +63,11 @@ export class OrderLinesService {
 
   findOne(id: number) {
     return `This action returns a #${id} orderLine`;
+  }
+
+
+  async getClientOrderLines(clientId: number, take: number) {
+    return await this.repository.find({ where: { clientId }, take, order: { createdAt: 'DESC' } })
   }
 
   async getOrderLineItems(orderId: number) {

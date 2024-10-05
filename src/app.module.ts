@@ -5,10 +5,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DatabaseConfigService } from './database-config/database-config.service';
 import { DataSourceOptions } from 'typeorm';
 import { UserSettingsModule } from './user-settings/user-settings.module';
+import { PurchaseOrderSuggestionsModule } from './purchase-order-suggestions/purchase-order-suggestions.module';
 
 @Global()
 @Module({
-  imports: [UserSettingsModule],
+  imports: [UserSettingsModule, PurchaseOrderSuggestionsModule],
   providers: []
 })
 

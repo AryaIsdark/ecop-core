@@ -4,4 +4,5 @@ export class CreateOrderLineDto {
     product_sku : string
     product_ean: string
     quantity: number
+    originalCreatedAt: Date
 }
