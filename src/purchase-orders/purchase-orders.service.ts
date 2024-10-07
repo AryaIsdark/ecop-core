@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PurchaseOrder, PurchaseOrderStatus } from './entities/purchase-order.entity';
+import { PurchaseOrder, PurchaseOrderQueryParams, PurchaseOrderStatus } from './entities/purchase-order.entity';
 import { Repository } from 'typeorm';
 import { SuppliersService } from 'src/suppliers';
 import { PurchaseOrderLineItemsService } from 'src/purchase-order-line-items';
@@ -66,7 +66,9 @@ export class PurchaseOrdersService {
             purchaseOrderId: purchaseOrder.id,
             productId: suggestion.id,
             quantity: suggestion.quantity,
-            supplierId: purchaseOrder.supplierId
+            supplierId: purchaseOrder.supplierId,
+            product_ean: suggestion.product_ean,
+            product_sku: suggestion.product_sku
           })
       }
     }
@@ -134,6 +136,25 @@ export class PurchaseOrdersService {
     const overview = await this.getOverview(id)
 
     return { ...purchaseOrder, supplier, overview }
+  }
+
+  async query(params: PurchaseOrderQueryParams){
+    let whereConditions : Partial<PurchaseOrderQueryParams> = {}
+    if(params.status){
+      whereConditions = {
+        status: params.status
+      }
+    }
+
+    if(params.clientId){
+      whereConditions = {
+        clientId: params.clientId
+      }
+    }
+
+    const data = await this.repository.find({where: whereConditions})
+
+    return data
   }
 
   update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {

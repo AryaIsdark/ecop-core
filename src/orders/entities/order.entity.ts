@@ -43,4 +43,6 @@ export type OrdersQueryParams = {
   pageSize?: number;
   clientId?: number;
   reference?: string;
+  status?: OrderStatus;
+
 };

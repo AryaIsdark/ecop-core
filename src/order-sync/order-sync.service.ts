@@ -51,6 +51,7 @@ export class OrderSyncService {
               product_ean: lineItem.product_sku,
               quantity: lineItem.quantity ?? 1,
               originalCreatedAt : newOrder.originalCreatedAt,
+              status: lineItem.status
             })
           }
         }

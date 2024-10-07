@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { Order, OrdersQueryParams } from './entities';
+import { Order, OrderStatus, OrdersQueryParams } from './entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { ILike, Not, Repository } from 'typeorm';
 import { Paginate } from 'src/base/paginate';
 import { OrderLinesService } from 'src/order-lines';
 import { ProductsService } from 'src/products';
@@ -26,6 +26,7 @@ export class OrdersService {
     if (existingOrder) {
       // Update the existing order if found
       existingOrder.clientId = createOrderDto.clientId; // Assuming you want to set this as well
+      existingOrder.status = createOrderDto.status
       // Set other fields from createOrderDto as needed
       return await this.repository.save(existingOrder);
     } else {
@@ -35,6 +36,7 @@ export class OrdersService {
       newOrder.reference = createOrderDto.reference;
       newOrder.originalCreatedAt = createOrderDto.originalCreatedAt
       newOrder.totalAmount = createOrderDto.totalAmount.toString()
+      newOrder.status = createOrderDto.status
       // Set other fields from createOrderDto as needed
       return await this.repository.save(newOrder);
     }
@@ -74,6 +76,10 @@ export class OrdersService {
     return `This action removes a #${id} order`;
   }
 
+  async getClientUnfulfilledOrders(clientId: number){
+    return await this.repository.find({where : {clientId, status: Not(OrderStatus.FULLFILED)}})
+  }
+
   async query(
     params: OrdersQueryParams = { pageNumber: 1, pageSize: 25 },
   ): Promise<Paginate<Order>> {
@@ -82,10 +88,14 @@ export class OrdersService {
 
     let whereConditions: Partial<Order> = {}
     if (params.clientId) {
-      whereConditions = { ...whereConditions, clientId: params.clientId }
+      whereConditions = { ...whereConditions, clientId: params.clientId}
     }
     if (params.reference) {
       whereConditions = { ...whereConditions, reference: params.reference }
+    }
+   
+    if (params.status) {
+      whereConditions = { ...whereConditions, status: params.status }
     }
 
     const [orders, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })

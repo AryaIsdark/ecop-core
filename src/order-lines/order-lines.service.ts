@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { CreateOrderLineDto } from './dto/create-order-line.dto';
 import { UpdateOrderLineDto } from './dto/update-order-line.dto';
-import { OrderLine } from './entities';
+import { OrderLine, OrderLineStatus, OrderLinesQueryParams } from './entities';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { ProductAnalyticsService } from 'src/product-analytics';
+import { OrderStatus } from 'src/orders';
 
 @Injectable()
 export class OrderLinesService {
@@ -14,6 +15,35 @@ export class OrderLinesService {
     private readonly productAnalyticsService: ProductAnalyticsService
   ) {
 
+  }
+
+  // async getClientUnfulfilledOrderLines(clientId: number){
+  //   return await this.repository.find({where : {clientId, orderStatus: Not(OrderStatus.FULLFILED)}})
+  // }
+
+  async query(params: OrderLinesQueryParams) {
+    let whereConditions: Partial<OrderLinesQueryParams> = {}
+    if (params.product_ean) {
+      whereConditions = {
+        ...whereConditions, product_ean: params.product_ean
+      }
+    }
+
+    if (params.clientId) {
+      whereConditions = {
+        ...whereConditions, clientId: params.clientId
+      }
+    }
+
+    if (params.orderId) {
+      whereConditions = {
+        ...whereConditions, orderId: params.orderId
+      }
+    }
+
+    const data = await this.repository.find({ where: whereConditions })
+
+    return data
   }
 
   async upsert(createOrderLineDto: CreateOrderLineDto) {
@@ -44,6 +74,7 @@ export class OrderLinesService {
     orderLine.product_ean = createOrderLineDto.product_ean
     orderLine.quantity = createOrderLineDto.quantity
     orderLine.originalCreatedAt = createOrderLineDto.originalCreatedAt
+    orderLine.status = createOrderLineDto.status
     await this.repository.save(orderLine)
 
     await this.productAnalyticsService.create({
@@ -66,8 +97,8 @@ export class OrderLinesService {
   }
 
 
-  async getClientOrderLines(clientId: number, take: number) {
-    return await this.repository.find({ where: { clientId }, take, order: { createdAt: 'DESC' } })
+  async getClientUnfullfiledOrderLines(clientId: number) {
+    return await this.repository.find({ where: { clientId,  status: Not(OrderLineStatus.FULLFILED)} })
   }
 
   async getOrderLineItems(orderId: number) {
@@ -87,6 +118,7 @@ export class OrderLinesService {
     existingOrderLine.product_sku = updateOrderLineDto.product_sku ?? existingOrderLine.product_sku;
     existingOrderLine.product_ean = updateOrderLineDto.product_ean ?? existingOrderLine.product_ean;
     existingOrderLine.quantity = updateOrderLineDto.quantity ?? existingOrderLine.quantity;
+    existingOrderLine.status = updateOrderLineDto.status ?? existingOrderLine.status;
 
     // Save the updated order line
     await this.repository.save(existingOrderLine);

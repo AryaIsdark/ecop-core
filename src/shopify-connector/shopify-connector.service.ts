@@ -19,32 +19,32 @@ const API_VERSION = '2024-04'
 
 @Injectable()
 export class ShopifyConnectorService {
-   
-  getAllOrders(orders){
+
+  getAllOrders(orders) {
     const data = []
     const mappedData = []
-    for(const order of orders){
-      if(order.id){
+    for (const order of orders) {
+      if (order.id) {
         data.push(order)
       }
     }
 
-    for(const order of data){
-      if(order.id){
-        const allChildrens = orders.filter((o)=> o.__parentId === order.id)
+    for (const order of data) {
+      if (order.id) {
+        const allChildrens = orders.filter((o) => o.__parentId === order.id)
         const lineItems = []
-        for(const child of allChildrens){
-          if(child.product){
+        for (const child of allChildrens) {
+          if (child.product) {
             lineItems.push(child)
           }
         }
-        mappedData.push({...order, lineItems})
+        mappedData.push({ ...order, lineItems })
       }
     }
 
     return mappedData
   }
-  
+
 
 
   async getBulkOrders(shopifyConfig: ShopifyConfig): Promise<CreateOrderDto[]> {
@@ -52,12 +52,12 @@ export class ShopifyConnectorService {
     try {
       const today = new Date();
       const yesterday = new Date(today);
-      yesterday.setDate(today.getDate() - 1);
+      yesterday.setDate(today.getDate() - 7);
       const yesterdayISO = yesterday.toISOString();
       const operationId = await runBulkQuery(shopifyConfig, getOrdersQuery(`created_at:>${yesterdayISO}`))
       const resultUrl = await pollBulkOperationStatus(shopifyConfig, operationId);
       const ordersResponse = await fetchBulkOperationResults(resultUrl)
-      const shopifyOrders  = this.getAllOrders(ordersResponse)
+      const shopifyOrders = this.getAllOrders(ordersResponse)
       const orders = []
       for (const shopifyOrder of shopifyOrders) {
         // Using for loop for processing line items
@@ -66,16 +66,17 @@ export class ShopifyConnectorService {
         for (const shopifyLineItem of shopifyLineItems) {
           const orderLine = {
             product_sku: shopifyLineItem.sku,
-            quantity: shopifyLineItem.quantity
+            quantity: shopifyLineItem.quantity,
+            status: shopifyOrder.displayFulfillmentStatus === 'FULFILLED' ? OrderStatus.FULLFILED : OrderStatus.CREATED
           };
           lineItems.push(orderLine);
         }
-
-        const order : CreateOrderDto = {
+        console.log('status', shopifyOrder.displayFulfillmentStatus)
+        const order: CreateOrderDto = {
           reference: shopifyOrder.confirmationNumber,
           originalCreatedAt: shopifyOrder.createdAt,
           totalAmount: shopifyOrder.totalPriceSet?.shopMoney.amount,
-          status: OrderStatus.CREATED,
+          status: shopifyOrder.displayFulfillmentStatus === 'FULFILLED' ? OrderStatus.FULLFILED : OrderStatus.CREATED,
           lineItems: lineItems,
           clientId: 0
         };

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UpserPurchaseOrderSuggestionDto } from './dto/create-purchase-order-suggestion.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrderSuggestion } from './entities';
-import { Repository } from 'typeorm';
+import { LessThan, MoreThan, Repository } from 'typeorm';
 import { JobConfiguration } from 'src/job-configurations';
 import { Product, ProductsService } from 'src/products';
 import { PurchaseOrdersService } from 'src/purchase-orders';
@@ -10,6 +10,7 @@ import { Order, OrdersService } from 'src/orders';
 import { PurchaseOrderLineItemsService } from 'src/purchase-order-line-items';
 import { OrderLine, OrderLinesService } from 'src/order-lines';
 import { InventoryService } from 'src/inventory/inventory.service';
+import { Inventory } from 'src/inventory/entities';
 
 
 @Injectable()
@@ -17,8 +18,10 @@ export class PurchaseOrderSuggestionsService {
   constructor(
     @InjectRepository(PurchaseOrderSuggestion)
     private readonly repository: Repository<PurchaseOrderSuggestion>,
-    private productsService : ProductsService,
-    private orderLinesService : OrderLinesService,    
+    private productsService: ProductsService,
+    @InjectRepository(Inventory)
+    private readonly inventoryRepository: Repository<Inventory>,
+    private orderLinesService: OrderLinesService,
   ) { }
 
   private calculateReorderPoint(product: Product, recentOrders: OrderLine[], stock: number): number {
@@ -40,13 +43,34 @@ export class PurchaseOrderSuggestionsService {
 
     // No need to reorder if stock is sufficient
     return 0;
-}
+  }
 
-  async suggestPurchaseOrders(clientId: number, supplierId? : number): Promise<UpserPurchaseOrderSuggestionDto[]> {
+  async suggestPurchaseOrders(clientId, supplierId): Promise<UpserPurchaseOrderSuggestionDto[]> {
+    const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
+    const candidates = await this.inventoryRepository.find({ where: { sellable_number_of_items: LessThan(1), number_of_book_items: MoreThan(0) } })
+    const supplierProducts = await this.productsService.query({supplierId, pageNumber: 1, pageSize:50000})
+    for(const candidate of candidates){
+      const matchProduct = supplierProducts.data.find((supplierProduct)=> candidate.article_number === supplierProduct.ean_normalized)
+      if(matchProduct?.id){
+        const suggestion: UpserPurchaseOrderSuggestionDto = {
+          id: matchProduct.id,
+          product_ean: matchProduct.ean,
+          product_sku: matchProduct.sku,
+          quantity: 1,
+          clientId: clientId,
+        };
+
+        suggestions.push(suggestion);
+      }
+    }
+    return suggestions
+  }
+
+  async suggestPurchaseOrders_old(clientId: number, supplierId?: number): Promise<UpserPurchaseOrderSuggestionDto[]> {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
 
     // Fetch data from the database
-    const products = await this.productsService.query({tenantId: clientId, supplierId, pageNumber: 1, pageSize: 100000})
+    const products = await this.productsService.query({ tenantId: clientId, supplierId, pageNumber: 1, pageSize: 100000 })
     // const existingPurchaseOrders = await this.purchaseOrderLineItemsService.getClientLineItems(clientId)
     // const recentOrders = await this.orderLinesService.getClientOrderLines(clientId, 1000);
 
@@ -102,7 +126,7 @@ export class PurchaseOrderSuggestionsService {
   }
 
   async update(params: Partial<UpserPurchaseOrderSuggestionDto>) {
-    
+
     await this.repository.update(
       { product_ean: params.product_ean, clientId: params.clientId },
       {

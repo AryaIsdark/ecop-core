@@ -7,6 +7,7 @@ export const getOrdersQuery = (query) => `
           id
           createdAt
           confirmationNumber
+          displayFulfillmentStatus
           totalPriceSet {
             shopMoney {
               amount

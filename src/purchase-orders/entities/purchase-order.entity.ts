@@ -44,3 +44,9 @@ export class PurchaseOrder extends BaseEntity {
   // lineItems: Promise<PurchaseOrderLineItem[]>;
 
 }
+
+export type PurchaseOrderQueryParams = {
+    clientId?: number
+    status?: PurchaseOrderStatus
+}
+

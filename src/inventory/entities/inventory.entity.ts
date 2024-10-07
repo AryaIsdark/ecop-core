@@ -18,6 +18,18 @@ export class Inventory extends BaseEntity {
   sellable_number_of_items: number;
 
   @Column({ nullable: true })
+  number_of_book_items: number;
+
+  @Column({ nullable: true })
+  to_receive_number_of_items: number;
+
+  @Column({ nullable: true })
+  stock_limit: number;
+
+  @Column({ nullable: true })
+  reorder_point: number;
+
+  @Column({ nullable: true })
   clientId: number;
 }
 
