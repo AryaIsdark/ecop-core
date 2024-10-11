@@ -21,30 +21,31 @@ export class PurchaseOrderSuggestionsService {
   ) { }
 
 
-  async getCandidates(){
-     const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
-     .where('inventory.actual_stock < inventory.stock_limit')
-     .andWhere('inventory.number_of_book_items > 0 ')
-     .getMany()
+  async getCandidates(clientId: number) {
+    const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
+        .where('inventory.actual_stock < inventory.stock_limit')
+        .andWhere('inventory.number_of_book_items > 0')
+        .andWhere('inventory.clientId = :clientId', { clientId })
+        .getMany();
+    return candidates;
+}
 
-     return candidates
-  }
 
 
   async suggestPurchaseOrders(clientId, supplierId): Promise<UpserPurchaseOrderSuggestionDto[]> {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
-    const candidates = await this.getCandidates()
+    const candidates = await this.getCandidates(clientId)
 
     for (const candidate of candidates) {
       if(candidate.product_ean === '0733739047045'){
         console.log('')
       }
       let matchProduct : Product
-      const products = await this.productsService.query({ean_normalized : candidate.product_ean, pageSize : 10, pageNumber: 1})
+      const products = await this.productsService.query({tenantId: clientId ,ean_normalized : candidate.product_ean, pageSize : 10, pageNumber: 1})
       const filteredProducts = products.data.filter((product) => parseInt(product.stock) > 0)
      
       if(filteredProducts.length === 1 ){
-        matchProduct = products[0]
+        matchProduct = filteredProducts[0]
       }
       if(filteredProducts.length > 1){
         matchProduct = identifyCheapestProducts(products.data)?.[0] as unknown as Product

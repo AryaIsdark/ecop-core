@@ -65,19 +65,17 @@ export class InventorySyncService {
   }
   
   async handleSyncWicsWmsInventory(config: WicsWmsConfig, clientId) {
-    const response = await this.wicsWmsConnectorService.getArticlesInventory(config)
+    const wicsStocks = await this.wicsWmsConnectorService.getArticlesInventory(config)
     const inventories: Partial<Inventory>[] = []
-    for (const item of response.data.data) {
+    for (const item of wicsStocks) {
       const inventory = new Inventory()
       inventory.clientId = clientId;
       inventory.article_number = item.itemCode;
       inventory.product_ean = item.itemCode;
       inventory.product_sku = item.itemCode;
-      // Summing up sellableNumberOfItems across all warehouses
-      inventory.sellable_number_of_items = item.warehouses.reduce(
-        (sum, warehouseInfo) => sum + warehouseInfo.nettoSalable, 0
-      );
-
+      inventory.sellable_number_of_items = item.nettoSalable
+      inventory.number_of_items = item.physical
+      inventory.to_receive_number_of_items = item.announced
       inventories.push(inventory)
     }
 
