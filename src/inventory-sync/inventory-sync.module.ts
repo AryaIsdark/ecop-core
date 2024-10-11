@@ -15,9 +15,7 @@ import { OrderLinesModule } from 'src/order-lines';
     WarehouseManagementSystemsModule,
     OngoingWmsConnectorModule,
     WicsWmsConnectorModule,
-    OrderLinesModule,
-    PurchaseOrderLineItemsModule,
-    PurchaseOrdersModule],
+    ],
   providers: [InventorySyncService],
   exports: [InventorySyncService]
 })

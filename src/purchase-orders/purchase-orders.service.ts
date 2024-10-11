@@ -74,20 +74,21 @@ export class PurchaseOrdersService {
     }
   }
 
-  async create(createDto: CreatePurchaseOrderDto): Promise<PurchaseOrder | string> {
-    const { supplierId, reference, clientId, } = createDto
+  async create(createDto: CreatePurchaseOrderDto): Promise<PurchaseOrder | null> {
+    const { supplierId, reference, clientId, original_created_at } = createDto
     if (createDto.supplierId) {
       const purchaseOrder = new PurchaseOrder();
       purchaseOrder.reference = reference;
       purchaseOrder.supplierId = supplierId;
       purchaseOrder.clientId = clientId;
       purchaseOrder.status = PurchaseOrderStatus.Draft;
+      purchaseOrder.original_created_at = original_created_at;
       const newPurchaseOrder = await this.repository.save(purchaseOrder);
 
       return newPurchaseOrder;
     }
 
-    return 'Given supplier does not exist in the system';
+    return  null;
   }
 
   async findAll() {
@@ -142,12 +143,13 @@ export class PurchaseOrdersService {
     let whereConditions : Partial<PurchaseOrderQueryParams> = {}
     if(params.status){
       whereConditions = {
-        status: params.status
+        ...whereConditions, status: params.status
       }
     }
 
     if(params.clientId){
       whereConditions = {
+        ...whereConditions,
         clientId: params.clientId
       }
     }

@@ -53,5 +53,6 @@ export type ProductsQueryParams = {
   sku?: string;
   name?: string;
   ean?: string;
+  ean_normalized? : string;
   brand?: string;
 };

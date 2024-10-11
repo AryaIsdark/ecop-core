@@ -45,6 +45,9 @@ export class ProductsService {
     if (params.ean) {
       whereConditions.ean = ILike(`%${params.ean}%`) 
     }
+    if (params.ean_normalized) {
+      whereConditions.ean_normalized = ILike(`%${params.ean_normalized}%`) 
+    }
     if (params.sku) {
       whereConditions.sku = ILike(`%${params.sku}%`) 
     }

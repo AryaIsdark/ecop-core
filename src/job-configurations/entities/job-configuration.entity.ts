@@ -1,7 +1,8 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum JobActionType {
   SyncProducts = 'sync-products',
+  SyncPurchaseOrders = 'sync-purchase-orders',
   SyncOrders = 'sync-orders',
   SyncInventory = 'sync-inventory',
   SyncCustomers = 'sync-customers',

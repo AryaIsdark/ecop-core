@@ -7,23 +7,14 @@ import { OngoingWmsConfig, OngoingWmsConnectorService } from 'src/ongoing-wms-co
 import { WarehouseManagementSystemsService } from 'src/warehouse-management-systems';
 import { Inventory } from 'src/inventory/entities';
 import { WicsWmsConfig, WicsWmsConnectorService } from 'src/wics-wms-connector/wics-wms-connector.service';
-import { PurchaseOrderLineItemsService } from 'src/purchase-order-line-items';
-import { PurchaseOrderStatus, PurchaseOrdersService } from 'src/purchase-orders';
-import { Order, OrderStatus, OrdersService } from 'src/orders';
-import { OrderLine, OrderLinesService } from 'src/order-lines';
-import { Not } from 'typeorm';
 
 @Injectable()
 export class InventorySyncService {
   constructor(
     private readonly inventoryService: InventoryService,
     private readonly ongoingWmsConnectorService: OngoingWmsConnectorService,
-    private readonly purchaseOrderLineItemsService: PurchaseOrderLineItemsService,
-    private readonly purchaseOrdersService: PurchaseOrdersService,
-    private readonly orderLinesService : OrderLinesService,
     private readonly wicsWmsConnectorService: WicsWmsConnectorService,
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService) {
-
   }
 
   create(createInventorySyncDto: CreateInventorySyncDto) {
@@ -46,61 +37,33 @@ export class InventorySyncService {
     return `This action removes a #${id} inventorySync`;
   }
 
-  
-
-  async getNumberOfBookedItems(clientId: number, product_ean: string, unfulfilledOrderLines: OrderLine[]): Promise<number> {
-    let numberOfBookedItems = 0
-
-    for(const lineItem of unfulfilledOrderLines){
-      if(lineItem.product_ean === product_ean){
-        numberOfBookedItems += lineItem.quantity
-      }
-    }
-
-    return numberOfBookedItems;
-
-  }
-
-  async getToReceiveNumberOfItems(clientId: number, product_ean: string): Promise<number> {
-    let toReceiveNumberOfItems = 0
-    const toReceivePurchaseOrders = await this.purchaseOrdersService.query({ clientId, status: PurchaseOrderStatus.Created })
-    for (const po of toReceivePurchaseOrders) {
-      const purchaseOrderLines = await this.purchaseOrderLineItemsService.query({ purchaseOrderId: po.id, product_ean })
-      if (purchaseOrderLines[0]?.id) {
-        toReceiveNumberOfItems += purchaseOrderLines[0].quantity
-      }
-    }
-
-    return toReceiveNumberOfItems;
-
-  }
 
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
-    const unfulfilledOrderLines = await this.orderLinesService.getClientUnfullfiledOrderLines(clientId)
-  
-    const response = await this.ongoingWmsConnectorService.getArticlesInventory(config)
+    const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
     const inventories: Partial<Inventory>[] = []
-    for (const item of response.data) {
+    for (const article of articles) {
       const inventory = new Inventory()
-      inventory.clientId = clientId;
-      inventory.article_number = item.articleNumber;
-      inventory.product_ean = item.articleNumber;
-      inventory.product_sku = item.articleNumber;
-      // Summing up sellableNumberOfItems across all warehouses
-      inventory.sellable_number_of_items = item.inventoryPerWarehouse.reduce(
-        (sum, warehouseInfo) => sum + warehouseInfo.sellableNumberOfItems, 0
-      );
-
-      inventory.to_receive_number_of_items = await this.getToReceiveNumberOfItems(clientId, inventory.product_ean)
-      inventory.number_of_book_items = await this.getNumberOfBookedItems(clientId, inventory.product_ean,  unfulfilledOrderLines)
+      inventory.clientId = clientId
+      inventory.article_number = article.articleNumber;
+      inventory.product_ean = article.articleNumber;
+      inventory.product_sku = article.articleNumber;
+      inventory.number_of_book_items = article.inventory.numberOfBookedItems
+      inventory.to_receive_number_of_items = article.inventory.toReceiveNumberOfItems
+      inventory.stock_limit = article.stockLimit
+      inventory.number_of_items = this.ongoingWmsConnectorService.extractTotalAvailableStock(article);
+      inventory.actual_stock = this.ongoingWmsConnectorService.calculateAdjustmentQuantity({
+        numberOfItems: inventory.number_of_items,
+        numberOfBookedItems: inventory.number_of_book_items,
+        numberOfIncomingItems: inventory.to_receive_number_of_items,
+        stockLimit: article.stockLimit
+      })
 
       inventories.push(inventory)
     }
 
     this.inventoryService.upserInventory(clientId, inventories as Inventory[])
   }
-
-
+  
   async handleSyncWicsWmsInventory(config: WicsWmsConfig, clientId) {
     const response = await this.wicsWmsConnectorService.getArticlesInventory(config)
     const inventories: Partial<Inventory>[] = []

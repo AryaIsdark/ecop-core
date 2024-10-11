@@ -2,15 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { UpserPurchaseOrderSuggestionDto } from './dto/create-purchase-order-suggestion.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrderSuggestion } from './entities';
-import { LessThan, MoreThan, Repository } from 'typeorm';
-import { JobConfiguration } from 'src/job-configurations';
+import { MoreThan, Repository } from 'typeorm';
 import { Product, ProductsService } from 'src/products';
-import { PurchaseOrdersService } from 'src/purchase-orders';
-import { Order, OrdersService } from 'src/orders';
-import { PurchaseOrderLineItemsService } from 'src/purchase-order-line-items';
-import { OrderLine, OrderLinesService } from 'src/order-lines';
-import { InventoryService } from 'src/inventory/inventory.service';
+import { OrderLinesService } from 'src/order-lines';
 import { Inventory } from 'src/inventory/entities';
+import { identifyCheapestProducts } from 'src/utils';
 
 
 @Injectable()
@@ -24,34 +20,37 @@ export class PurchaseOrderSuggestionsService {
     private orderLinesService: OrderLinesService,
   ) { }
 
-  private calculateReorderPoint(product: Product, recentOrders: OrderLine[], stock: number): number {
-    // Simple demand estimation based on recent orders for the product
-    // const demand = recentOrders
-    //   .filter((order) => order.product_ean === product.ean)
-    //   .reduce((acc, order) => acc + order.quantity, 0);
 
-    const leadTime = 1 || 7; // Default to 7 days lead time
-    const safetyStock = 0; // Example safety stock
+  async getCandidates(){
+     const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
+     .where('inventory.actual_stock < inventory.stock_limit')
+     .andWhere('inventory.number_of_book_items > 0 ')
+     .getMany()
 
-    // Calculate reorder point
-    // const reorderPoint = (demand * leadTime) + safetyStock;
-
-    // If stock is below reorder point, return the quantity that needs to be ordered
-    // if (stock < reorderPoint) {
-    //     return reorderPoint - stock;
-    // }
-
-    // No need to reorder if stock is sufficient
-    return 0;
+     return candidates
   }
+
 
   async suggestPurchaseOrders(clientId, supplierId): Promise<UpserPurchaseOrderSuggestionDto[]> {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
-    const candidates = await this.inventoryRepository.find({ where: { sellable_number_of_items: LessThan(1), number_of_book_items: MoreThan(0) } })
-    const supplierProducts = await this.productsService.query({supplierId, pageNumber: 1, pageSize:50000})
-    for(const candidate of candidates){
-      const matchProduct = supplierProducts.data.find((supplierProduct)=> candidate.article_number === supplierProduct.ean_normalized)
-      if(matchProduct?.id){
+    const candidates = await this.getCandidates()
+
+    for (const candidate of candidates) {
+      if(candidate.product_ean === '0733739047045'){
+        console.log('')
+      }
+      let matchProduct : Product
+      const products = await this.productsService.query({ean_normalized : candidate.product_ean, pageSize : 10, pageNumber: 1})
+      const filteredProducts = products.data.filter((product) => parseInt(product.stock) > 0)
+     
+      if(filteredProducts.length === 1 ){
+        matchProduct = products[0]
+      }
+      if(filteredProducts.length > 1){
+        matchProduct = identifyCheapestProducts(products.data)?.[0] as unknown as Product
+      }
+
+      if (matchProduct?.supplierId === supplierId) {
         const suggestion: UpserPurchaseOrderSuggestionDto = {
           id: matchProduct.id,
           product_ean: matchProduct.ean,
@@ -64,41 +63,6 @@ export class PurchaseOrderSuggestionsService {
       }
     }
     return suggestions
-  }
-
-  async suggestPurchaseOrders_old(clientId: number, supplierId?: number): Promise<UpserPurchaseOrderSuggestionDto[]> {
-    const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
-
-    // Fetch data from the database
-    const products = await this.productsService.query({ tenantId: clientId, supplierId, pageNumber: 1, pageSize: 100000 })
-    // const existingPurchaseOrders = await this.purchaseOrderLineItemsService.getClientLineItems(clientId)
-    // const recentOrders = await this.orderLinesService.getClientOrderLines(clientId, 1000);
-
-    // Process each product
-    for (const product of products.data) {
-      const selleableNumberOfItems = product['inventoryInfo']?.['sellable_number_of_items'] ?? 0
-      // const existingPO = existingPurchaseOrders.find((po) => po. === product.sku);
-
-      // Calculate reorder point (simple logic, can be replaced with your logic)
-      // const reorderPoint = this.calculateReorderPoint(product, recentOrders, stock);
-
-      // Suggest an order if stock is below reorder point and no existing PO covers it
-      if (selleableNumberOfItems < 0) {
-        const quantityToOrder = selleableNumberOfItems * -1
-
-        const suggestion: UpserPurchaseOrderSuggestionDto = {
-          id: product.id,
-          product_ean: product.ean,
-          product_sku: product.sku,
-          quantity: quantityToOrder,
-          clientId: clientId,
-        };
-
-        suggestions.push(suggestion);
-      }
-    }
-
-    return suggestions;
   }
 
   async upsert(params: Partial<UpserPurchaseOrderSuggestionDto>) {
