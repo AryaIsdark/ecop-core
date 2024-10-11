@@ -66,6 +66,7 @@ export class JobsService {
   }
 
   async addNewJobAdhoc(jobConfigurationId: number) {
+    console.log(`hello from addNewJobAdhoc: I ran for ${jobConfigurationId}`)
     const jobConfiguration = await this.jobConfigurationService.findOne(jobConfigurationId)
    
     if(jobConfiguration?.id){

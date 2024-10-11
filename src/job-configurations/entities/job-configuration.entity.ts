@@ -40,4 +40,7 @@ export class JobConfiguration {
   @Column({nullable: true})
   tenantId: number
 
+  @Column({nullable: true})
+  cronExpression: string;
+
 }

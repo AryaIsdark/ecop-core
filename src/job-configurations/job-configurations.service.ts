@@ -78,6 +78,10 @@ export class JobConfigurationsService {
     return result
   }
 
+  async findAll(){
+    return await this.repository.find()
+
+  }
   findOne(id: number) {
     return this.repository.findOne({ where: { id } });
   }
