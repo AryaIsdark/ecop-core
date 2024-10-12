@@ -41,6 +41,6 @@ export class CoreModule implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.cronJobsService.scheduleJobs();
+    // await this.cronJobsService.scheduleJobs();
   }
 }

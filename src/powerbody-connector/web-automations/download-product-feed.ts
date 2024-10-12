@@ -1,7 +1,7 @@
-import puppeteer from 'puppeteer';
 import { PowerbodyWebAutomationConfig } from '../powerbody-connector.service';
+import puppeteer from 'puppeteer';
 
-export const downloadProductFeed = async (config: PowerbodyWebAutomationConfig, tenantId: number, downloadPath: string) => {
+export const downloadProductFeed = async (config: PowerbodyWebAutomationConfig) => {
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox'], // Use this option if you encounter sandbox issues
@@ -23,20 +23,19 @@ export const downloadProductFeed = async (config: PowerbodyWebAutomationConfig, 
     const client = await page.target().createCDPSession();
     await client.send('Page.setDownloadBehavior', {
       behavior: 'allow',
-      downloadPath,
+      downloadPath: './test-folder',
     });
 
-    await page.waitForNetworkIdle({timeout : 60000}); // Wait until the download is complete
+    await page.waitForNetworkIdle(); // Wait until the download is complete
 
-
-    return 'Successfully downloaded and renamed the file';
-
+    console.log('file download was completed')
   } catch (e) {
     console.error(
-      'Something went wrong while getting the latest powerbody file',
+      'something went wrong while getting latest powerbody file',
       e,
     );
   } finally {
     await browser.close();
   }
 };
+

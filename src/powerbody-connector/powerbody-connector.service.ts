@@ -19,6 +19,7 @@ export type PowerbodyWebAutomationConfig = {
 export class PowerbodyConnectorService {
 
   async handleRenameFile(folderPath: string): Promise<void> {
+    console.log('handleRenameFile begins')
     try {
       const files = await fs.readdirSync(folderPath);
       for (const file of files) {
@@ -40,8 +41,9 @@ export class PowerbodyConnectorService {
   }
 
   async handleDownloadProductFeedAction_old(tenantId: number, config: PowerbodyWebAutomationConfig) {
-    const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`
-    await downloadProductFeed(config, tenantId, folderPath)
+    const folderPath = './test-folder'
+    // const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`
+    await downloadProductFeed(config)
     await this.handleRenameFile(folderPath)
     const rootFolder = process.cwd();
     const fileName = 'powerbody.xls';
@@ -51,16 +53,19 @@ export class PowerbodyConnectorService {
   }
 
   async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig) {
+    console.log('handleDownloadProductFeedAction')
     try {
-      const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`;
+      const folderPath = './test-folder'
+      // const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`;
 
       // Ensure the directory exists before proceeding
       if (!fs.existsSync(folderPath)) {
+        console.log('folder does not exists, so Im making a new one')
         fs.mkdirSync(folderPath, { recursive: true }); // Creates the folder and necessary parent directories
       }
 
       // Proceed with the download
-      await downloadProductFeed(config, tenantId, folderPath);
+      await downloadProductFeed(config);
 
       // Handle renaming the file (you can adjust this logic based on what handleRenameFile does)
       await this.handleRenameFile(folderPath);
