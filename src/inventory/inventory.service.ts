@@ -3,7 +3,8 @@ import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { Inventory, InventoryQueryParams } from './entities';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, LessThan, MoreThan, Repository } from 'typeorm';
+import { EntityManager, ILike, LessThan, MoreThan, Repository } from 'typeorm';
+import { Paginate } from 'src/base/paginate';
 
 @Injectable()
 export class InventoryService {
@@ -39,35 +40,40 @@ export class InventoryService {
     return `This action removes a #${id} inventory`;
   }
 
-  async query(params: InventoryQueryParams) {
-    const where : any = {};
+  async query(
+    params: InventoryQueryParams = { pageNumber: 1, pageSize: 25 },
+  ): Promise<Paginate<Inventory>> {
+    const take = params.pageSize;
+    const skip = (params.pageNumber - 1) * params.pageSize;
+    let whereConditions : Record<string, any> = {
 
-    if (params.sellable_number_of_items_less_than) {
-        where.sellable_number_of_items = LessThan(params.sellable_number_of_items_less_than);
     }
-    
-    if (params.sellable_number_of_items_more_than) {
-        where.sellable_number_of_items = MoreThan(params.sellable_number_of_items_more_than);
-    }
-    
+
     if (params.clientId) {
-        where.clientId = params.clientId;
+      whereConditions.clientId =  params.clientId 
     }
-    
+  
     if (params.product_ean) {
-        where.product_ean = params.product_ean;
+      whereConditions.product_ean = ILike(`%${params.product_ean}%`) 
     }
-
+ 
     if (params.product_sku) {
-        where.product_sku = params.product_sku;
+      whereConditions.product_sku = ILike(`%${params.product_sku}%`) 
+    }
+    if (params.sellable_number_of_items_less_than) {
+      whereConditions.sellable_number_of_items = LessThan(params.sellable_number_of_items_less_than)
+    }
+    if (params.sellable_number_of_items_more_than) {
+      whereConditions.sellable_number_of_items = MoreThan(params.sellable_number_of_items_less_than)
     }
 
-    const result = await this.repository.find({
-      where
-    });
+    const [inventories, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })
 
-    return result;
-}
+    return {
+      count,
+      data: inventories
+    }
+  }
 
   async upserInventory(
     clientId: number,

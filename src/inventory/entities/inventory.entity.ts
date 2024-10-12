@@ -43,6 +43,8 @@ export class Inventory extends BaseEntity {
 }
 
 export type InventoryQueryParams = {
+  pageNumber: number, 
+  pageSize: number,
   sellable_number_of_items_less_than?: number
   sellable_number_of_items_more_than?: number
   clientId? : number

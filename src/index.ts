@@ -21,4 +21,5 @@ export * from './warehouse-management-systems'
 export * from './product-analytics'
 export * from './utils'
 export * from './user-settings'
+export * from './inventory'
 
