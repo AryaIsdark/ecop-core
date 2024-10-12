@@ -19,6 +19,7 @@ export type PowerbodyWebAutomationConfig = {
 export class PowerbodyConnectorService {
 
   async handleRenameFile(folderPath: string): Promise<void> {
+    console.log('handleRenameFile begins')
     try {
       const files = await fs.readdirSync(folderPath);
       for (const file of files) {
@@ -39,15 +40,49 @@ export class PowerbodyConnectorService {
     }
   }
 
-  async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig){
-    const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`
-    await downloadProductFeed(config, tenantId, folderPath)
+  async handleDownloadProductFeedAction_old(tenantId: number, config: PowerbodyWebAutomationConfig) {
+    const folderPath = './test-folder'
+    // const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`
+    await downloadProductFeed(config)
     await this.handleRenameFile(folderPath)
     const rootFolder = process.cwd();
     const fileName = 'powerbody.xls';
     const filePath = path.join(rootFolder, folderPath, fileName);
     const powerbody_products = await processExcelProductFeed(filePath, config.productMappingKeys)
     return powerbody_products
+  }
+
+  async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig) {
+    console.log('handleDownloadProductFeedAction')
+    try {
+      const folderPath = './test-folder'
+      // const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`;
+
+      // Ensure the directory exists before proceeding
+      if (!fs.existsSync(folderPath)) {
+        console.log('folder does not exists, so Im making a new one')
+        fs.mkdirSync(folderPath, { recursive: true }); // Creates the folder and necessary parent directories
+      }
+
+      // Proceed with the download
+      await downloadProductFeed(config);
+
+      // Handle renaming the file (you can adjust this logic based on what handleRenameFile does)
+      await this.handleRenameFile(folderPath);
+
+      const rootFolder = process.cwd();
+      const fileName = 'powerbody.xls';
+      const filePath = path.join(rootFolder, folderPath, fileName);
+      console.info('fiiiiiiiiiiiiile',filePath)
+
+      // Process the Excel product feed
+      const powerbody_products = await processExcelProductFeed(filePath, config.productMappingKeys);
+
+      return powerbody_products;
+    }
+    catch (e) {
+      console.error('handleDownloadProductFeedAction', e)
+    }
   }
 
   async handleWebAutomationJob(config: PowerbodyWebAutomationConfig, tenantId) {

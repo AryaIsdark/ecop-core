@@ -1,11 +1,13 @@
-export const GET_ORDERS = `
-  query($query: String!) {
-    orders(first: 10, query: $query) {
+//query: "created_at>=2024-09-29T21:29:51.897Z"
+
+export const getOrdersQuery = (query) => `
+    orders(query: "${query}") {
       edges {
         node {
           id
-          name
           createdAt
+          confirmationNumber
+          displayFulfillmentStatus
           totalPriceSet {
             shopMoney {
               amount
@@ -17,11 +19,15 @@ export const GET_ORDERS = `
             lastName
             email
           }
-          lineItems(first: 5) {
+          lineItems(first:10) {
             edges {
               node {
                 name
                 quantity
+                sku   
+                product{
+                  id
+                }             
                 variant {
                   price
                 }
@@ -31,5 +37,4 @@ export const GET_ORDERS = `
         }
       }
     }
-  }
 `;

@@ -38,22 +38,27 @@ export const processExcelProductFeed = async (
   filePath: string,
   productMappingKeys: Record<string, string>,
 ) => {
-  const modifiedSheet = modifyFile(filePath);
+  try {
+    const modifiedSheet = modifyFile(filePath);
 
-  // Create a dynamic mapping based on the provided productMappingKeys
-  const dynamicColumnNameMapping = createDynamicMapping(productMappingKeys);
+    // Create a dynamic mapping based on the provided productMappingKeys
+    const dynamicColumnNameMapping = createDynamicMapping(productMappingKeys);
 
-  // Convert the sheet to JSON
-  const rawData = XLSX.utils.sheet_to_json(modifiedSheet as unknown as any);
+    // Convert the sheet to JSON
+    const rawData = XLSX.utils.sheet_to_json(modifiedSheet as unknown as any);
 
-  // Extract and map the data using the dynamic mapping
-  const mappedData = rawData.slice(9, rawData.length).map((row: any) => {
-    const mappedRow: any = {};
-    for (const [sourceColumnName, targetColumnName] of Object.entries(dynamicColumnNameMapping)) {
-      mappedRow[targetColumnName] = row[sourceColumnName] || null;
-    }
-    return mappedRow;
-  });
+    // Extract and map the data using the dynamic mapping
+    const mappedData = rawData.slice(9, rawData.length).map((row: any) => {
+      const mappedRow: any = {};
+      for (const [sourceColumnName, targetColumnName] of Object.entries(dynamicColumnNameMapping)) {
+        mappedRow[targetColumnName] = row[sourceColumnName] || null;
+      }
+      return mappedRow;
+    });
 
-  return mappedData;
+    return mappedData;
+  }
+  catch (e) {
+    throw (e)
+  }
 };

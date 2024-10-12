@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PurchaseOrder, PurchaseOrderStatus } from './entities/purchase-order.entity';
+import { PurchaseOrder, PurchaseOrderQueryParams, PurchaseOrderStatus } from './entities/purchase-order.entity';
 import { Repository } from 'typeorm';
 import { SuppliersService } from 'src/suppliers';
 import { PurchaseOrderLineItemsService } from 'src/purchase-order-line-items';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { Product } from 'src/products';
 import { OrderLinesService } from 'src/order-lines';
+import { PurchaseOrderSuggestionsService } from 'src/purchase-order-suggestions';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -20,6 +21,7 @@ export class PurchaseOrdersService {
     private readonly suppliersService: SuppliersService,
     private readonly orderLinesService: OrderLinesService,
     private readonly purchaseOrderLineItemsService: PurchaseOrderLineItemsService,
+    private readonly purchaseOrderSuggestionService: PurchaseOrderSuggestionsService,
     private readonly inventoryService: InventoryService,
   ) {
 
@@ -52,35 +54,41 @@ export class PurchaseOrdersService {
   }
 
   async generateLineItemsFromSuggestion(purchaseOrderId){
-    const suggestions = await this.suggestLineItemsForPurchaseOrder(purchaseOrderId)
     const purchaseOrder = await this.findOne(purchaseOrderId);
+    const suggestions = await this.purchaseOrderSuggestionService.suggestPurchaseOrders(purchaseOrder.clientId, purchaseOrder.supplierId)
+
+    // const suggestions = await this.suggestLineItemsForPurchaseOrder(purchaseOrderId)
+    // const purchaseOrder = await this.findOne(purchaseOrderId);
     if(suggestions.length){
       for(const suggestion of suggestions){
         await this.purchaseOrderLineItemsService.create({
             clientId: purchaseOrder.clientId,
             purchaseOrderId: purchaseOrder.id,
             productId: suggestion.id,
-            quantity: 1, // TODO: Make a function to get quantity
-            supplierId: purchaseOrder.supplierId
+            quantity: suggestion.quantity,
+            supplierId: purchaseOrder.supplierId,
+            product_ean: suggestion.product_ean,
+            product_sku: suggestion.product_sku
           })
       }
     }
   }
 
-  async create(createDto: CreatePurchaseOrderDto): Promise<PurchaseOrder | string> {
-    const { supplierId, reference, clientId, } = createDto
+  async create(createDto: CreatePurchaseOrderDto): Promise<PurchaseOrder | null> {
+    const { supplierId, reference, clientId, original_created_at } = createDto
     if (createDto.supplierId) {
       const purchaseOrder = new PurchaseOrder();
       purchaseOrder.reference = reference;
       purchaseOrder.supplierId = supplierId;
       purchaseOrder.clientId = clientId;
       purchaseOrder.status = PurchaseOrderStatus.Draft;
+      purchaseOrder.original_created_at = original_created_at;
       const newPurchaseOrder = await this.repository.save(purchaseOrder);
 
       return newPurchaseOrder;
     }
 
-    return 'Given supplier does not exist in the system';
+    return  null;
   }
 
   async findAll() {
@@ -94,12 +102,17 @@ export class PurchaseOrdersService {
     return mappedPurchaseOrders
   }
 
+  async getClientPurchaseOrders(clientId: number){  
+    return await this.repository.find({where: {clientId}})
+  }
+
   async getTotalPrice(id: number) {
     const lineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(id)
     let purchaseOrderTotalPrice = 0
     if (lineItems.length) {
-      for (const lineItem of lineItems) {
-        const lineItemTotalPrice = Number(lineItem.product.price) * lineItem.quantity
+      for (const lineItem  of lineItems) {
+        const product = await this.productRepository.findOne({where: {id: lineItem.productId }})
+        const lineItemTotalPrice = Number(product.price) * lineItem.quantity
         purchaseOrderTotalPrice = purchaseOrderTotalPrice + lineItemTotalPrice
       }
     }
@@ -124,6 +137,26 @@ export class PurchaseOrdersService {
     const overview = await this.getOverview(id)
 
     return { ...purchaseOrder, supplier, overview }
+  }
+
+  async query(params: PurchaseOrderQueryParams){
+    let whereConditions : Partial<PurchaseOrderQueryParams> = {}
+    if(params.status){
+      whereConditions = {
+        ...whereConditions, status: params.status
+      }
+    }
+
+    if(params.clientId){
+      whereConditions = {
+        ...whereConditions,
+        clientId: params.clientId
+      }
+    }
+
+    const data = await this.repository.find({where: whereConditions})
+
+    return data
   }
 
   update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {

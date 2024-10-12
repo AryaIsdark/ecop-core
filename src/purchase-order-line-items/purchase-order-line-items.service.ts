@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { CreatePurchaseOrderLineItemDto } from './dto/create-purchase-order-line-item.dto';
 import { UpdatePurchaseOrderLineItemDto } from './dto/update-purchase-order-line-item.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PurchaseOrderLineItem } from './entities/purchase-order-line-item.entity';
+import { PurchaseOrderLineItem, PurchaseOrderLineItemsQueryParams } from './entities/purchase-order-line-item.entity';
 import { Repository } from 'typeorm';
 import { ProductsService } from 'src/products';
 import { ExportFormat } from 'src/base/export-format';
 import { CsvKeyMapping, exportToCsv } from 'src/utils/export-csv/export-csv';
+import { ExportPurchaseOrderLineItemsParams } from './dto/export-purchase-order-line-items.dto';
 
 @Injectable()
 export class PurchaseOrderLineItemsService {
@@ -29,8 +30,33 @@ export class PurchaseOrderLineItemsService {
     return false
   }
 
+  async query(params: PurchaseOrderLineItemsQueryParams) {
+    let whereConditions: Partial<PurchaseOrderLineItemsQueryParams> = {}
+    if (params.product_ean) {
+      whereConditions = {
+        ...whereConditions, product_ean: params.product_ean
+      }
+    }
+
+    if (params.clientId) {
+      whereConditions = {
+        ...whereConditions, clientId: params.clientId
+      }
+    }
+
+    if (params.purchaseOrderId) {
+      whereConditions = {
+        ...whereConditions, purchaseOrderId: params.purchaseOrderId
+      }
+    }
+
+    const data = await this.repository.find({ where: whereConditions })
+
+    return data
+  }
+
   async create(createPurchaseOrderLineItemDto: CreatePurchaseOrderLineItemDto) {
-    const { purchaseOrderId, productId, clientId, quantity, supplierId } = createPurchaseOrderLineItemDto
+    const { purchaseOrderId, productId, clientId, quantity, supplierId, product_ean, product_sku } = createPurchaseOrderLineItemDto
     const isExisting = await this.isExisting(purchaseOrderId, productId)
 
     if (isExisting) {
@@ -40,11 +66,17 @@ export class PurchaseOrderLineItemsService {
     const linetItem = new PurchaseOrderLineItem()
     linetItem.clientId = clientId
     linetItem.productId = productId
+    linetItem.product_ean = product_ean
+    linetItem.product_sku = product_sku
     linetItem.purchaseOrderId = purchaseOrderId
     linetItem.supplierId = supplierId
     linetItem.quantity = quantity
 
     return await this.repository.save(linetItem)
+  }
+
+  async getClientLineItems(clientId: number) {
+    return await this.repository.find({ where: { clientId } })
   }
 
   findAll() {
@@ -76,8 +108,8 @@ export class PurchaseOrderLineItemsService {
   }
 
 
-  async getLineItemsForPurchaseOrder(purchaseOrderId: number) {
-    const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id : 'ASC'} })
+  async getLineItemsForPurchaseOrder(purchaseOrderId: number): Promise<PurchaseOrderLineItem[]> {
+    const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } })
     const mappedLineItems = []
     for (const lineItem of lineItems) {
       const product = await this.productsService.findOne(lineItem.productId)
@@ -103,22 +135,43 @@ export class PurchaseOrderLineItemsService {
     }
   }
 
-  async export(purchaseOrderId: number, exportFormat: ExportFormat){
-    const lineItems = await this.repository.find({where : { purchaseOrderId }, order: {id: 'ASC'}})
-
-    const purchaseOrderKeys: CsvKeyMapping<PurchaseOrderLineItem>[] = [
-      { field: 'product.ean_original', title: 'EAN' },
-      { field: 'quantity', title: 'Quantity' },
-    ];
-
-    if(exportFormat === ExportFormat.CSV){
-      // Handle CSV export (.csv)
-      return exportToCsv(lineItems, purchaseOrderKeys, 'some file' )
+  getExportFields(fields: string[]): CsvKeyMapping<PurchaseOrderLineItem>[] {
+    const keys = []
+    if (fields.includes('name')) {
+      keys.push({ field: 'product.name', title: 'Name' })
     }
-    if(exportFormat === ExportFormat.EXCEL){
+    if (fields.includes('ean')) {
+      keys.push({ field: 'product.ean', title: 'EAN' })
+    }
+    if (fields.includes('quantity')) {
+      keys.push({ field: 'quantity', title: 'Quantity' })
+    }
+    if (fields.includes('sku')) {
+      keys.push({ field: 'product.sku', title: 'SKU' })
+    }
+
+    return keys
+  }
+
+  async export(params: ExportPurchaseOrderLineItemsParams) {
+    const { purchaseOrderId, exportFormat, fields, showHeader = true } = params
+    const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } })
+    const mappedLineItems = []
+    for (const lineItem of lineItems) {
+      const product = await this.productsService.findOne(lineItem.productId)
+      mappedLineItems.push({ ...lineItem, product })
+    }
+
+    const purchaseOrderKeys = this.getExportFields(fields)
+
+    if (exportFormat === ExportFormat.CSV) {
+      // Handle CSV export (.csv)
+      return exportToCsv(mappedLineItems, purchaseOrderKeys, showHeader, 'some file')
+    }
+    if (exportFormat === ExportFormat.EXCEL) {
       // Handle EXCEL export (.excel)
     }
-    if(exportFormat === ExportFormat.TEXT){
+    if (exportFormat === ExportFormat.TEXT) {
       // Handle TEXT export (.txt)
     }
 

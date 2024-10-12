@@ -10,6 +10,7 @@ import { ProductSyncService } from 'src/product-sync/product-sync.service';
 import { OrderSyncService } from 'src/order-sync/order-sync.service';
 import { InventorySyncService } from 'src/inventory-sync/inventory-sync.service';
 import { WebAutomationsService } from 'src/web-automations/web-automations.service';
+import { PurchaseOrderSyncService } from 'src/purchase-order-sync/purchase-order-sync.service';
 
 @Injectable()
 export class JobsService {
@@ -19,6 +20,7 @@ export class JobsService {
     private readonly repository: Repository<Job>,
     private readonly jobConfigurationService: JobConfigurationsService,
     private readonly productSyncService : ProductSyncService,
+    private readonly purchaseOrderSyncService : PurchaseOrderSyncService,
     private readonly orderSyncService : OrderSyncService,
     private readonly inventorySyncService : InventorySyncService,
     private readonly webAutomationService : WebAutomationsService
@@ -44,6 +46,9 @@ export class JobsService {
       if(jobConfiguration.actionType === JobActionType.SyncOrders){
         await this.orderSyncService.handleSyncOrderJob(jobConfiguration)
       } 
+      if(jobConfiguration.actionType === JobActionType.SyncPurchaseOrders){
+        await this.purchaseOrderSyncService.handleSyncPurchaseOrderJob(jobConfiguration)
+      } 
       if(jobConfiguration.actionType === JobActionType.SyncInventory){
         await this.inventorySyncService.handleSyncInventoryJob(jobConfiguration)
       } 
@@ -58,6 +63,25 @@ export class JobsService {
     catch (e) {
       this.updateStatus(currentJob.id, JobStatus.Failed)
     }
+  }
+
+  async addNewJobAdhoc(jobConfigurationId: number) {
+    console.log(`hello from addNewJobAdhoc: I ran for ${jobConfigurationId}`)
+    const jobConfiguration = await this.jobConfigurationService.findOne(jobConfigurationId)
+   
+    if(jobConfiguration?.id){
+      const newJob = new Job()
+      newJob.status = JobStatus.Queued;
+      newJob.entityReferenceId = jobConfiguration.id;
+      newJob.tenantId = jobConfiguration.tenantId
+      const savedJob = await this.repository.save(newJob)
+      if(savedJob.id){
+       return await this.processJob(savedJob.id)
+      }
+    }
+    
+    return 'could not find a job configuration with the given ID'
+   
   }
 
   async addNewJob(entityReferenceId: number, tenantId: number) {

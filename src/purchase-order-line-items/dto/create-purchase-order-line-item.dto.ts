@@ -4,4 +4,6 @@ export class CreatePurchaseOrderLineItemDto {
     quantity: number;
     clientId: number;
     supplierId: number;
+    product_ean: string;
+    product_sku: string;
 }

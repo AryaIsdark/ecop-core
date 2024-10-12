@@ -7,10 +7,11 @@ import { PurchaseOrderLineItemsModule } from 'src/purchase-order-line-items';
 import { InventoryModule } from 'src/inventory/inventory.module';
 import { Product } from 'src/products';
 import { OrderLinesModule } from 'src/order-lines';
+import { PurchaseOrderSuggestionsModule } from 'src/purchase-order-suggestions';
 
 
 @Module({
-  imports : [TypeOrmModule.forFeature([PurchaseOrder, Product]), SuppliersModule,OrderLinesModule, PurchaseOrderLineItemsModule, InventoryModule],
+  imports : [TypeOrmModule.forFeature([PurchaseOrder, Product]), SuppliersModule,OrderLinesModule, PurchaseOrderLineItemsModule, InventoryModule, PurchaseOrderSuggestionsModule],
   providers: [PurchaseOrdersService],
   exports: [PurchaseOrdersService]
 })

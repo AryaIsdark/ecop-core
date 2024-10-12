@@ -36,11 +36,13 @@ export class PurchaseOrder extends BaseEntity {
   @Column({ nullable: true })
   clientId: number;
 
-  // @OneToMany(
-  //   () => PurchaseOrderLineItem,
-  //   (lineItem) => lineItem.purchaseOrder,
-  //   { cascade: true },
-  // )
-  // lineItems: Promise<PurchaseOrderLineItem[]>;
+  @Column({ nullable: true })
+  original_created_at: Date
 
 }
+
+export type PurchaseOrderQueryParams = {
+    clientId?: number
+    status?: PurchaseOrderStatus
+}
+

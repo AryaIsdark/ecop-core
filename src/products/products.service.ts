@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductsQueryParams } from './entities/product.entity';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, ILike, Repository } from 'typeorm';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { SuppliersService } from 'src/suppliers';
 import { Paginate } from 'src/base/paginate';
+import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
 
 @Injectable()
@@ -31,22 +32,30 @@ export class ProductsService {
   ): Promise<Paginate<Product>> {
     const take = params.pageSize;
     const skip = (params.pageNumber - 1) * params.pageSize;
+    let whereConditions : Record<string, any> = {
 
-    let whereConditions: Partial<Product> = {}
+    }
+
     if (params.tenantId) {
-      whereConditions = { ...whereConditions, tenantId: params.tenantId }
+      whereConditions.tenantId =  params.tenantId 
     }
     if (params.supplierId) {
-      whereConditions = { ...whereConditions, supplierId: params.supplierId }
+      whereConditions.supplierId = params.supplierId
     }
     if (params.ean) {
-      whereConditions = { ...whereConditions, ean: params.ean }
+      whereConditions.ean = ILike(`%${params.ean}%`) 
+    }
+    if (params.ean_normalized) {
+      whereConditions.ean_normalized = ILike(`%${params.ean_normalized}%`) 
+    }
+    if (params.sku) {
+      whereConditions.sku = ILike(`%${params.sku}%`) 
     }
     if (params.brand) {
-      whereConditions = { ...whereConditions, brand: params.brand }
+      whereConditions.brand = ILike(`%${params.brand}%`) 
     }
     if (params.name) {
-      whereConditions = { ...whereConditions, brand: params.name }
+      whereConditions.name = ILike(`%${params.name}%`) 
     }
 
     const [products, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })
@@ -89,9 +98,11 @@ export class ProductsService {
       await this.entityManager.transaction(async (transactionalEntityManager) => {
         for (const product of products) {
           if (product) {
-            transactionalEntityManager.upsert(
+            const { id, ...productDataWithoutId } = product; // Exclude 'id' from the product data
+            
+            await transactionalEntityManager.upsert(
               Product,
-              { ...product, supplierId, tenantId },
+              { ...productDataWithoutId, supplierId, tenantId, ean_normalized: normalizeEAN(product.ean) },
               ['sku', 'tenantId'],
             );
           }
@@ -102,5 +113,6 @@ export class ProductsService {
       throw error;
     }
   }
+  
 
 }

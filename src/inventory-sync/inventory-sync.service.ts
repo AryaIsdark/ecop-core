@@ -15,7 +15,6 @@ export class InventorySyncService {
     private readonly ongoingWmsConnectorService: OngoingWmsConnectorService,
     private readonly wicsWmsConnectorService: WicsWmsConnectorService,
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService) {
-
   }
 
   create(createInventorySyncDto: CreateInventorySyncDto) {
@@ -38,41 +37,45 @@ export class InventorySyncService {
     return `This action removes a #${id} inventorySync`;
   }
 
+
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
-    const response = await this.ongoingWmsConnectorService.getArticlesInventory(config)
+    const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
     const inventories: Partial<Inventory>[] = []
-    for (const item of response.data) {
+    for (const article of articles) {
       const inventory = new Inventory()
-      inventory.clientId = clientId;
-      inventory.article_number = item.articleNumber;
-      inventory.product_ean = item.articleNumber;
-      inventory.product_sku = item.articleNumber;
-      // Summing up sellableNumberOfItems across all warehouses
-      inventory.sellable_number_of_items = item.inventoryPerWarehouse.reduce(
-        (sum, warehouseInfo) => sum + warehouseInfo.sellableNumberOfItems, 0
-      );
+      inventory.clientId = clientId
+      inventory.article_number = article.articleNumber;
+      inventory.product_ean = article.articleNumber;
+      inventory.product_sku = article.articleNumber;
+      inventory.number_of_book_items = article.inventory.numberOfBookedItems
+      inventory.to_receive_number_of_items = article.inventory.toReceiveNumberOfItems
+      inventory.stock_limit = article.stockLimit
+      inventory.number_of_items = this.ongoingWmsConnectorService.extractTotalAvailableStock(article);
+      inventory.actual_stock = this.ongoingWmsConnectorService.calculateAdjustmentQuantity({
+        numberOfItems: inventory.number_of_items,
+        numberOfBookedItems: inventory.number_of_book_items,
+        numberOfIncomingItems: inventory.to_receive_number_of_items,
+        stockLimit: article.stockLimit
+      })
 
       inventories.push(inventory)
     }
 
     this.inventoryService.upserInventory(clientId, inventories as Inventory[])
   }
-
-
+  
   async handleSyncWicsWmsInventory(config: WicsWmsConfig, clientId) {
-    const response = await this.wicsWmsConnectorService.getArticlesInventory(config)
+    const wicsStocks = await this.wicsWmsConnectorService.getArticlesInventory(config)
     const inventories: Partial<Inventory>[] = []
-    for (const item of response.data.data) {
+    for (const item of wicsStocks) {
       const inventory = new Inventory()
       inventory.clientId = clientId;
       inventory.article_number = item.itemCode;
       inventory.product_ean = item.itemCode;
       inventory.product_sku = item.itemCode;
-      // Summing up sellableNumberOfItems across all warehouses
-      inventory.sellable_number_of_items = item.warehouses.reduce(
-        (sum, warehouseInfo) => sum + warehouseInfo.nettoSalable, 0
-      );
-
+      inventory.sellable_number_of_items = item.nettoSalable
+      inventory.number_of_items = item.physical
+      inventory.to_receive_number_of_items = item.announced
       inventories.push(inventory)
     }
 

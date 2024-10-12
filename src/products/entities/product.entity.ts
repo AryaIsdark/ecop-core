@@ -31,6 +31,9 @@ export class Product {
   @Column({ nullable: true })
   supplierId: number;
 
+  @Column({ nullable: true })
+  ean_normalized: string;
+
   // @OneToMany(() => PurchaseOrderLineItem, (lineItem) => lineItem.product)
   // purchaseOrderLineItems: Promise<PurchaseOrderLineItem[]>;
 
@@ -50,5 +53,6 @@ export type ProductsQueryParams = {
   sku?: string;
   name?: string;
   ean?: string;
+  ean_normalized? : string;
   brand?: string;
 };

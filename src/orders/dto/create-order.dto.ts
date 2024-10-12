@@ -6,5 +6,6 @@ export class CreateOrderDto {
     reference: string
     totalAmount: number
     status: OrderStatus
+    originalCreatedAt: Date
     lineItems : Partial<OrderLine>[]
 }

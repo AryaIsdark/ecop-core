@@ -4,4 +4,5 @@ export class CreatePurchaseOrderDto {
   supplierId: number;
   clientId: number;
   autoGenerateLineItems: boolean;
+  original_created_at: Date
 }

@@ -30,7 +30,7 @@ export class QueueModule {
               port: configService.get<number>('REDIS_PORT', 6379),
               username: configService.get<string>('REDIS_USERNAME'),
               password: configService.get<string>('REDIS_PASSWORD'),
-              tls: configService.get<boolean>('REDIS_TLS', false) ? {} : undefined, // Conditionally enable TLS
+              tls: {} // Empty object enables SSL/TLS 
             },
           }),
         }),

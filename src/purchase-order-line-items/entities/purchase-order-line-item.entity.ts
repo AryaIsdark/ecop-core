@@ -19,6 +19,12 @@ export class PurchaseOrderLineItem extends BaseEntity {
     @Column()
     purchaseOrderId: number;
 
+    @Column()
+    product_ean: string;
+
+    @Column()
+    product_sku: string;
+
     // @ManyToOne(() => PurchaseOrder, (purchaseOrder) => purchaseOrder.lineItems, {
     //     onDelete: 'CASCADE',
     // })
@@ -26,12 +32,13 @@ export class PurchaseOrderLineItem extends BaseEntity {
 
 }
 
-export type PurchaseOrderLineItemQueryParams = {
-    pageNumber: number;
-    pageSize: number;
-    purchaseOrderId: number;
-    ean: string;
-    sku: string;
-    brand: string;
-    productName: string;
+export type PurchaseOrderLineItemsQueryParams = {
+    pageNumber?: number;
+    pageSize?: number;
+    purchaseOrderId?: number;
+    product_ean?: string;
+    product_sku?: string;
+    brand?: string;
+    productName?: string;
+    clientId?: number;
 };

@@ -28,7 +28,21 @@ export class Order extends BaseEntity {
   @Column({ nullable: true })
   totalAmount: string;
 
+  @Column()
+  originalCreatedAt: Date
+
   @Column({ nullable: true })
   clientId: number;
 
 }
+
+
+
+export type OrdersQueryParams = {
+  pageNumber?: number;
+  pageSize?: number;
+  clientId?: number;
+  reference?: string;
+  status?: OrderStatus;
+
+};
