@@ -3,6 +3,20 @@ import { downloadProductFeed } from './web-automations/download-product-feed';
 import { processExcelProductFeed } from './processors/process-excel-product-feed';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Product } from 'src/products';
+import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
+
+
+export type PowerBodyProduct = {
+  brand?: string,
+  name?: string, 
+  sku?: string, 
+  ean?: string, 
+  stock?: string, 
+  price1?: string,
+  price2?: string,
+  price3?: string,
+}
 
 export enum PowerbodyWebautomationAction {
   DOWNLOAD_PRODUCT_FEED = 'download-product-feed'
@@ -52,8 +66,7 @@ export class PowerbodyConnectorService {
     return powerbody_products
   }
 
-  async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig) {
-    console.log('handleDownloadProductFeedAction')
+  async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig) : Promise<Partial<Product>[]> {
     try {
       const folderPath = './test-folder'
       // const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`;
@@ -76,9 +89,21 @@ export class PowerbodyConnectorService {
       console.info('fiiiiiiiiiiiiile',filePath)
 
       // Process the Excel product feed
-      const powerbody_products = await processExcelProductFeed(filePath, config.productMappingKeys);
+      const powerbody_products : PowerBodyProduct[] = await processExcelProductFeed(filePath, config.productMappingKeys);
+      const products : Partial<Product>[] = []
+      for(const powerbodyProduct of powerbody_products){
+        products.push({
+            brand: powerbodyProduct.brand,
+            ean: powerbodyProduct.ean,
+            ean_normalized: normalizeEAN(powerbodyProduct.ean), 
+            name: powerbodyProduct.name,
+            sku: powerbodyProduct.sku,
+            price: Number(powerbodyProduct.price1 ?? powerbodyProduct.price2 ?? powerbodyProduct.price3),
+            stock: powerbodyProduct.stock
+        })
+    }
 
-      return powerbody_products;
+      return products;
     }
     catch (e) {
       console.error('handleDownloadProductFeedAction', e)

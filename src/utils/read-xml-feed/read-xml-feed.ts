@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Product } from 'src/products';
 import { DOMParser } from 'xmldom';
 import * as xpath from 'xpath';
 
@@ -6,11 +7,21 @@ interface MappingKeys {
   [key: string]: string;
 }
 
-interface Product {
-  [key: string]: string;
+// interface Product {
+//   [key: string]: string;
+// }
+
+export const getPrice = (discountInPercentage: number, originalPrice: number) => {
+  if (!discountInPercentage) {
+    return originalPrice
+  }
+
+  const discount = (originalPrice * discountInPercentage) / 100
+
+  return originalPrice - discount
 }
 
-export async function getProductsFromXML(url: string, initialNode: string,  mappingKeys: MappingKeys): Promise<Product[]> {
+export async function getProductsFromXML(url: string, initialNode: string, mappingKeys: MappingKeys, discountInPercentage: number): Promise<Partial<Product>[]> {
   try {
     // Fetch the XML content from the URL
     const response = await axios.get(url, { responseType: 'text' });
@@ -28,10 +39,10 @@ export async function getProductsFromXML(url: string, initialNode: string,  mapp
 
     // Extract all product nodes
     const products = xpath.select(`//${initialNode}`, xmlDoc) as Node[];
-    const productArray: Product[] = [];
+    const productArray: Partial<Product>[] = [];
 
     for (const productNode of products) {
-      const product: Product = {};
+      const product: Partial<Product> = {};
 
       // Iterate over the config and map the keys
       for (const key in mappingKeys) {
@@ -41,7 +52,7 @@ export async function getProductsFromXML(url: string, initialNode: string,  mapp
         }
       }
 
-      productArray.push(product);
+      productArray.push({ ...product, price: getPrice(discountInPercentage, product.price)  });
     }
 
     return productArray;

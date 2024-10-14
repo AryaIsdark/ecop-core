@@ -1,5 +1,7 @@
 import * as XLSX from 'xlsx';
 
+
+
 function createDynamicMapping(productMappingKeys: Record<string, string>) {
   const dynamicColumnNameMapping: Record<string, string> = {};
 

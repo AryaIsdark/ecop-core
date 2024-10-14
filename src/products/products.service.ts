@@ -92,7 +92,7 @@ export class ProductsService {
   async upserProducts(
     tenantId: number,
     supplierId: number,
-    products: Product[],
+    products: Partial<Product>[],
   ) {
     try {
       await this.entityManager.transaction(async (transactionalEntityManager) => {
