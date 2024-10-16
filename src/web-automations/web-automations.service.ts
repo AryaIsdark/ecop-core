@@ -19,7 +19,11 @@ export class WebAutomationsService {
         const supplier = await this.suppliersService.findOne(entityReferenceId)
         if (supplier.name === 'powerbody') {
             const products = await this.powerbodyConnectorService.handleWebAutomationJob(jobConfiguration.config as unknown as PowerbodyWebAutomationConfig, tenantId)
-            await this.productSyncService.handleSyncProducts(tenantId, entityReferenceId, products)
+            if(products.length){
+                console.log(`${products.length} found, syncing products begins...`)
+                await this.productSyncService.handleSyncProducts(tenantId, entityReferenceId, products)
+                console.log(`syncing products finished succesfully`)
+            }   
         }
     }
 

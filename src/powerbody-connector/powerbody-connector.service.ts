@@ -1,18 +1,21 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { Injectable } from '@nestjs/common';
 import { downloadProductFeed } from './web-automations/download-product-feed';
 import { processExcelProductFeed } from './processors/process-excel-product-feed';
-import * as fs from 'fs';
-import * as path from 'path';
 import { Product } from 'src/products';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
+const delay = async (ms: number) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export type PowerBodyProduct = {
   brand?: string,
-  name?: string, 
-  sku?: string, 
-  ean?: string, 
-  stock?: string, 
+  name?: string,
+  sku?: string,
+  ean?: string,
+  stock?: string,
   price1?: string,
   price2?: string,
   price3?: string,
@@ -29,78 +32,114 @@ export type PowerbodyWebAutomationConfig = {
   productMappingKeys: Record<string, string>
 }
 
+
 @Injectable()
 export class PowerbodyConnectorService {
 
-  async handleRenameFile(folderPath: string): Promise<void> {
-    console.log('handleRenameFile begins')
+  // Function to get the latest file from a folder
+  async getLatestFile(folderPath: string): Promise<string | null> {
     try {
-      const files = await fs.readdirSync(folderPath);
-      for (const file of files) {
-        // Rename each file to 'powerbody.xls'
-        const oldPath = path.join(folderPath, file);
-        const newPath = path.join(folderPath, 'powerbody.xls');
+      const files = await fs.promises.readdir(folderPath);
 
-        try {
-          await fs.renameSync(oldPath, newPath);
-          console.log(`Renamed ${file} to powerbody.xls`);
-          return; // Exit after renaming the first file
-        } catch (err) {
-          console.error(`Error renaming file ${file}: ${err}`);
+      if (files.length === 0) {
+        console.error('No files found in folder');
+        return null;
+      }
+
+      // Get file info and sort by modification time (newest first)
+      const sortedFiles = await Promise.all(
+        files.map(async file => {
+          const filePath = path.join(folderPath, file);
+          const stats = await fs.promises.stat(filePath);
+          return { filePath, mtime: stats.mtime };
+        })
+      );
+
+      sortedFiles.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+      // Return the path of the latest file
+      return sortedFiles[0].filePath;
+    } catch (err) {
+      console.error(`Error getting latest file: ${err}`);
+      return null;
+    }
+  }
+
+  async allocateFolder(folderPath: string) {
+    if (!fs.existsSync(folderPath)) {
+      console.log('Folder does not exist, creating a new one');
+      await fs.promises.mkdir(folderPath, { recursive: true });
+
+      // Double check if folder creation was successful
+      if (!fs.existsSync(folderPath)) {
+        console.error('Failed to create folder:', folderPath);
+        return null;
+      }
+    } else {
+      console.info('Folder already exists:', folderPath);
+    }
+  }
+
+  async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig): Promise<string | null> {
+    try {
+      const downloadPath = path.join(process.cwd(), `./tenants/${tenantId}/powerbody/product-feeds`);
+
+      const isFolderReady = this.allocateFolder(downloadPath)
+
+      if (isFolderReady) {
+        console.info('Attempting to download file to this path: ', downloadPath)
+
+        await downloadProductFeed(config, downloadPath);
+
+        const latestFilePath = await this.getLatestFile(downloadPath);
+
+        console.info('Latest File path:', latestFilePath);
+
+        if (fs.existsSync(latestFilePath)) {
+          return latestFilePath;
+        } else {
+          console.error('File not found after renaming.');
+          return null;
         }
       }
-    } catch (err) {
-      console.error(`Error reading folder: ${err}`);
-    }
-  }
-
-  async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig) : Promise<Partial<Product>[]> {
-    try {
-      const folderPath = './test-folder'
-      // const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`;
-
-      // Ensure the directory exists before proceeding
-      if (!fs.existsSync(folderPath)) {
-        console.log('folder does not exists, so Im making a new one')
-        fs.mkdirSync(folderPath, { recursive: true }); // Creates the folder and necessary parent directories
+      else {
+        console.error('Folder was not ready please try again.')
       }
-
-      // Proceed with the download
-      await downloadProductFeed(config);
-
-      // Handle renaming the file (you can adjust this logic based on what handleRenameFile does)
-      await this.handleRenameFile(folderPath);
-
-      const rootFolder = process.cwd();
-      const fileName = 'powerbody.xls';
-      const filePath = path.join(rootFolder, folderPath, fileName);
-      console.info('fiiiiiiiiiiiiile',filePath)
-
-      // Process the Excel product feed
-      const powerbody_products : PowerBodyProduct[] = await processExcelProductFeed(filePath, config.productMappingKeys);
-      const products : Partial<Product>[] = []
-      for(const powerbodyProduct of powerbody_products){
-        products.push({
-            brand: powerbodyProduct.brand,
-            ean: powerbodyProduct.ean,
-            ean_normalized: normalizeEAN(powerbodyProduct.ean), 
-            name: powerbodyProduct.name,
-            sku: powerbodyProduct.sku,
-            price: Number(powerbodyProduct.price1 ?? powerbodyProduct.price2 ?? powerbodyProduct.price3),
-            stock: powerbodyProduct.stock
-        })
-    }
-
-      return products;
-    }
-    catch (e) {
-      console.error('handleDownloadProductFeedAction', e)
+    } catch (e) {
+      console.error('handleDownloadProductFeedAction error:', e);
+      return null;
     }
   }
 
-  async handleWebAutomationJob(config: PowerbodyWebAutomationConfig, tenantId) {
+  mapProducts = (powerbodyProducts: PowerBodyProduct[]): Partial<Product>[] => {
+    const products = powerbodyProducts.map((powerbodyProduct) => {
+      return {
+        brand: powerbodyProduct.brand,
+        ean: powerbodyProduct.ean,
+        ean_normalized: normalizeEAN(powerbodyProduct.ean),
+        name: powerbodyProduct.name,
+        sku: powerbodyProduct.sku,
+        price: Number(powerbodyProduct.price1 ?? powerbodyProduct.price2 ?? powerbodyProduct.price3),
+        stock: powerbodyProduct.stock,
+      };
+    });
+
+    return products;
+  }
+
+
+  async handleWebAutomationJob(config: PowerbodyWebAutomationConfig, tenantId: number) {
     if (config.action === PowerbodyWebautomationAction.DOWNLOAD_PRODUCT_FEED) {
-      return await this.handleDownloadProductFeedAction(tenantId, config)
+      const filePath = await this.handleDownloadProductFeedAction(tenantId, config);
+
+      if (filePath) {
+        const powerbodyProducts: PowerBodyProduct[] = await processExcelProductFeed(filePath, config.productMappingKeys);
+        const products: Partial<Product>[] = this.mapProducts(powerbodyProducts)
+        if (!products.length) {
+          return []
+        }
+        return products
+      }
     }
   }
 }
