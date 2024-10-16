@@ -62,7 +62,7 @@ export class ProductsService {
     const productsWithInventory = []
 
     for (const product of products) {
-      const inventoryInfo = await this.inventoryService.findWithEan(product.ean, product.tenantId)
+      const inventoryInfo = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
       const supplier = await this.suppliersService.findOne(product.supplierId);
       productsWithInventory.push({ ...product, inventoryInfo, supplier })
     }
@@ -77,8 +77,12 @@ export class ProductsService {
     return this.repository.find();
   }
 
-  findOne(id: number) {
-    return this.repository.findOne({ where: { id } })
+  async findOne(id: number) {
+    
+    const product = await this.repository.findOne({ where: { id } })
+    const inventoryInfo = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
+
+    return {...product, inventoryInfo}
   }
 
   update(id: number, updateProductDto: UpdateProductDto) {
