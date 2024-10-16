@@ -13,8 +13,14 @@ export class Product {
   @Column({ nullable: true })
   brand: string;
 
-  @Column({ nullable: true })
-  price: string;
+  @Column({
+    type: 'decimal',
+    nullable: true,
+    precision: 10,
+    scale: 2,
+    default: 0,
+  })
+  price: number;
 
   @Column({ nullable: true })
   sku: string;

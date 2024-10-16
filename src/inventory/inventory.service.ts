@@ -53,11 +53,11 @@ export class InventoryService {
       whereConditions.clientId =  params.clientId 
     }
   
-    if (params.product_ean) {
+    if (params.product_ean?.length) {
       whereConditions.product_ean = ILike(`%${params.product_ean}%`) 
     }
  
-    if (params.product_sku) {
+    if (params.product_sku?.length) {
       whereConditions.product_sku = ILike(`%${params.product_sku}%`) 
     }
     if (params.sellable_number_of_items_less_than) {

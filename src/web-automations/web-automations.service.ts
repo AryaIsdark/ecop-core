@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { EntityType, JobConfiguration } from 'src/job-configurations';
 import { PowerbodyConnectorService, PowerbodyWebAutomationConfig } from 'src/powerbody-connector/powerbody-connector.service';
 import { ProductSyncService } from 'src/product-sync';
-import { Product } from 'src/products';
 import { SuppliersService } from 'src/suppliers';
 
 @Injectable()
@@ -20,7 +19,11 @@ export class WebAutomationsService {
         const supplier = await this.suppliersService.findOne(entityReferenceId)
         if (supplier.name === 'powerbody') {
             const products = await this.powerbodyConnectorService.handleWebAutomationJob(jobConfiguration.config as unknown as PowerbodyWebAutomationConfig, tenantId)
-            await this.productSyncService.handleSyncProducts(tenantId, entityReferenceId, products as Product[])
+            if(products.length){
+                console.log(`${products.length} found, syncing products begins...`)
+                await this.productSyncService.handleSyncProducts(tenantId, entityReferenceId, products)
+                console.log(`syncing products finished succesfully`)
+            }   
         }
     }
 

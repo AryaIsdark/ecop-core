@@ -10,16 +10,16 @@ export class ProductSyncService {
 
   }
 
-  async handleSyncProducts(clientId, supplierId, products: Product[]) {
+  async handleSyncProducts(clientId, supplierId, products: Partial<Product>[]) {
     await this.productsService.upserProducts(clientId, supplierId, products)
   }
 
   async handleSyncXmlFeedJob(jobConfiguration: JobConfiguration) {
     try {
-      const { entityReferenceId, tenantId, config } = jobConfiguration
-      const {feed_url, productMappingKeys, responsePath} = config
+      const { entityReferenceId, tenantId, config  } = jobConfiguration
+      const {feed_url, productMappingKeys, responsePath, discountInPercentage } = config
       
-      const data = await getProductsFromXML(feed_url, responsePath, productMappingKeys)
+      const data = await getProductsFromXML(feed_url, responsePath, productMappingKeys, discountInPercentage )
       await this.handleSyncProducts(tenantId, entityReferenceId, data as unknown as Product[])
 
     }

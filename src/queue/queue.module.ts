@@ -4,7 +4,7 @@ import { BullModule } from '@nestjs/bull';
 import { QueueProcessor } from './queue.processor';
 import { JobsModule } from 'src/jobs/jobs.module';
 import { JobConfigurationsModule } from 'src/job-configurations';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -22,17 +22,17 @@ export class QueueModule {
       imports: [
         BullModule.registerQueueAsync({
           name: 'queue',
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          useFactory: async (configService: ConfigService) => ({
-            redis: {
-              host: configService.get<string>('REDIS_HOST', 'localhost'),
-              port: configService.get<number>('REDIS_PORT', 6379),
-              username: configService.get<string>('REDIS_USERNAME'),
-              password: configService.get<string>('REDIS_PASSWORD'),
-              tls: {} // Empty object enables SSL/TLS 
-            },
-          }),
+          // imports: [ConfigModule],
+          // inject: [ConfigService],
+          // useFactory: async (configService: ConfigService) => ({
+          //   redis: {
+          //     host: configService.get<string>('REDIS_HOST', 'localhost'),
+          //     port: configService.get<number>('REDIS_PORT', 6379),
+          //     username: configService.get<string>('REDIS_USERNAME'),
+          //     password: configService.get<string>('REDIS_PASSWORD'),
+          //     tls: {} // Empty object enables SSL/TLS 
+          //   },
+          // }),
         }),
       ],
     };
