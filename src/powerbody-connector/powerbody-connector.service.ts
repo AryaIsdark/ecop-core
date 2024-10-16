@@ -54,18 +54,6 @@ export class PowerbodyConnectorService {
     }
   }
 
-  async handleDownloadProductFeedAction_old(tenantId: number, config: PowerbodyWebAutomationConfig) {
-    const folderPath = './test-folder'
-    // const folderPath = `./tenants/${tenantId}/powerbody/product-feeds`
-    await downloadProductFeed(config)
-    await this.handleRenameFile(folderPath)
-    const rootFolder = process.cwd();
-    const fileName = 'powerbody.xls';
-    const filePath = path.join(rootFolder, folderPath, fileName);
-    const powerbody_products = await processExcelProductFeed(filePath, config.productMappingKeys)
-    return powerbody_products
-  }
-
   async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig) : Promise<Partial<Product>[]> {
     try {
       const folderPath = './test-folder'
