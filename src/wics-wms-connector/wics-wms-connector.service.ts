@@ -48,7 +48,7 @@ export class WicsWmsConnectorService {
 
 
   async getArticlesInventory(config: WicsWmsConfig): Promise<WicsStock[]> {
-    const pageSize = 250;
+    const pageSize = 5000;
     let page = 1;
     let allResults: WicsStock[] = [];
     let hasMoreData = true;
