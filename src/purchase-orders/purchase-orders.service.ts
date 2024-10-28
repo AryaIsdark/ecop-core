@@ -1,6 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, forwardRef } from '@nestjs/common';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
-import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrder, PurchaseOrderQueryParams, PurchaseOrderStatus } from './entities/purchase-order.entity';
 import { Repository } from 'typeorm';
@@ -10,6 +9,8 @@ import { InventoryService } from 'src/inventory/inventory.service';
 import { Product } from 'src/products';
 import { OrderLinesService } from 'src/order-lines';
 import { PurchaseOrderSuggestionsService } from 'src/purchase-order-suggestions';
+import { ClientsService, WarehouseManagementSystemJobConfiguration } from 'src/clients';
+import { WarehouseManagementSystemsService } from 'src/warehouse-management-systems';
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -23,6 +24,9 @@ export class PurchaseOrdersService {
     private readonly purchaseOrderLineItemsService: PurchaseOrderLineItemsService,
     private readonly purchaseOrderSuggestionService: PurchaseOrderSuggestionsService,
     private readonly inventoryService: InventoryService,
+    private readonly wmsService : WarehouseManagementSystemsService,
+    @Inject(forwardRef(() => ClientsService))
+    private readonly clientsService: ClientsService,
   ) {
 
   }
@@ -91,6 +95,41 @@ export class PurchaseOrdersService {
     return  null;
   }
 
+
+
+  async publish(id: number, publishDto: CreatePurchaseOrderDto) {
+    const purchaseOrder = await this.repository.findOne({ where: { id } })
+    const PurchaseOrderLineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(purchaseOrder.id)
+    const payload: CreatePurchaseOrderDto = {
+      ...publishDto,
+      lineItems: PurchaseOrderLineItems,
+    }
+    const jobConfiguration : WarehouseManagementSystemJobConfiguration[] = await this.clientsService.getWarehouseManagementSystemJobConfigurations(purchaseOrder.clientId)
+    const correspondingWMS = jobConfiguration[0].warehouseManagementSystem
+    const config = jobConfiguration[0].config
+
+    try {
+      const response = await this.wmsService.publishPurchaseOrder(correspondingWMS, config as unknown as any, payload)
+      if (response) {
+        return await this.update(purchaseOrder.id, { status: PurchaseOrderStatus.Published, reference: payload.reference  })
+      }
+    }
+    catch (e) {
+      console.error(e)
+    }
+
+  }
+
+  async update(id: number, payload: Partial<PurchaseOrder>) {
+    const purchaseOrder = await this.repository.findOne({ where: { id } })
+    if (!purchaseOrder.id) {
+      throw new NotFoundException(`purchase order not found with id: ${id}`)
+    }
+
+    return await this.repository.update(purchaseOrder.id, payload)
+  }
+
+
   async findAll() {
     const purchaseOrders = await this.repository.find();
     const mappedPurchaseOrders = []
@@ -157,10 +196,6 @@ export class PurchaseOrdersService {
     const data = await this.repository.find({where: whereConditions})
 
     return data
-  }
-
-  update(id: number, updatePurchaseOrderDto: UpdatePurchaseOrderDto) {
-    return `This action updates a #${id} purchaseOrder`;
   }
 
   remove(id: number) {

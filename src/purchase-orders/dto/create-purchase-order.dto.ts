@@ -1,8 +1,9 @@
+import { CreatePurchaseOrderLineItemDto } from "src/purchase-order-line-items";
+
 export class CreatePurchaseOrderDto {
   reference: string;
-//   lineItems: PurchaseOrderLineItemDto[] | null;
+  lineItems: CreatePurchaseOrderLineItemDto[] | null;
   supplierId: number;
   clientId: number;
-  autoGenerateLineItems: boolean;
   original_created_at: Date
 }

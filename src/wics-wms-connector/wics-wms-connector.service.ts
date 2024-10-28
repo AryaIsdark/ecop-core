@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateWicsWmsConnectorDto } from './dto/create-wics-wms-connector.dto';
 import { UpdateWicsWmsConnectorDto } from './dto/update-wics-wms-connector.dto';
 import axios from 'axios';
+import { CreatePurchaseOrderDto } from 'src/purchase-orders';
 
 
 export type WicsWarehouse = {
@@ -10,6 +11,22 @@ export type WicsWarehouse = {
   nettoSalable: number;
   warehouseCode: string;
 }
+
+
+export type WicsAnnouncementPayload = {
+  reference: string;
+  plannedDate: string;
+  supplier: number;
+  lines: WicsAnnouncementLineItemPayload[];
+};
+
+export type WicsAnnouncementLineItemPayload = {
+  itemCode: string;
+  quantityExpected: number;
+  lotNumber: string;
+  bestBeforeDate: string;
+};
+
 
 export type WicsStock = {
   itemCode: string;
@@ -33,6 +50,33 @@ export class WicsWmsConnectorService {
 
   async delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async createPurchaseOrder(config: WicsWmsConfig, params: CreatePurchaseOrderDto) {
+    const apiUrl = `${config.apiBaseUrl}/announcement`
+
+    const lines = params.lineItems.map((lineItem) => ({
+      itemCode: lineItem.product_ean,
+      quantityExpected: lineItem.quantity,
+      lotNumber: "0",
+      bestBeforeDate: ""
+    }))
+
+    const payload: WicsAnnouncementPayload = {
+      reference: params.reference,
+      plannedDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split("T")[0], // current date + 5 days
+      supplier: 0,
+      lines
+    }
+    
+
+    try {
+      return await axios.post(apiUrl, payload, { headers: { Authorization: config.authorization } })
+    }
+    catch (e) {
+      console.error(e)
+    }
+
   }
 
   async getArticlesInventory_old(config: WicsWmsConfig) {

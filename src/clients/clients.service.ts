@@ -4,10 +4,10 @@ import { Client } from './entities/client.entity';
 import { Repository } from 'typeorm';
 import { SuppliersService } from 'src/suppliers/suppliers.service';
 import { JobConfigurationsService } from 'src/job-configurations/job-configurations.service';
-import { EntityType, JobActionType, JobConfiguration } from 'src/job-configurations/entities/job-configuration.entity';
+import { EntityType, JobConfiguration } from 'src/job-configurations/entities/job-configuration.entity';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
 import { JobsService } from 'src/jobs/jobs.service';
-import { Order, OrdersService } from 'src/orders';
+import { Order } from 'src/orders';
 import { EcommercePlatform, EcommercePlatformsService } from 'src/ecommerce-platforms';
 import { WarehouseManagementSystem, WarehouseManagementSystemsService } from 'src/warehouse-management-systems';
 
@@ -53,7 +53,6 @@ export class ClientsService {
   
     return clientSuppliers;
   }
-  
 
 
   async getSupplierJobConfigurations(clientId: number): Promise<SupplierProductSyncJobConfiguration[]> {
@@ -69,7 +68,7 @@ export class ClientsService {
     return mappedJobConfigurations
   }
 
-  async getWarehouseManagementSystemJobConfigurations(clientId: number): Promise<EcommercePlatformJobConfiguration[]> {
+  async getWarehouseManagementSystemJobConfigurations(clientId: number): Promise<WarehouseManagementSystemJobConfiguration[]> {
     const jobConfigurations = await this.jobConfigurationsService.query(clientId, { entityType: EntityType.warehouseManagemenSystem })
     const mappedJobConfigurations = []
     for (const jobConfiguration of jobConfigurations) {

@@ -3,6 +3,7 @@ import { PurchaseOrderLineItem } from 'src/purchase-order-line-items/entities/pu
 import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 export enum PurchaseOrderStatus {
+    Published = 'published',
     Draft = 'draft',
     Created = 'created',
     Cancelled = 'cancelled',
