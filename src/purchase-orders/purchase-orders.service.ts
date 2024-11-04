@@ -131,7 +131,7 @@ export class PurchaseOrdersService {
 
 
   async findAll() {
-    const purchaseOrders = await this.repository.find();
+    const purchaseOrders = await this.repository.find({order: {createdAt: 'DESC'}});
     const mappedPurchaseOrders = []
     for(const purchaseOrder of purchaseOrders){
       const supplier = await this.suppliersService.findOne(purchaseOrder.supplierId)
@@ -193,9 +193,16 @@ export class PurchaseOrdersService {
       }
     }
 
-    const data = await this.repository.find({where: whereConditions})
+   
+    const purchaseOrders = await this.repository.find({where: whereConditions, order: {createdAt: 'DESC'}})
 
-    return data
+    const mappedPurchaseOrders = []
+    for(const purchaseOrder of purchaseOrders){
+      const supplier = await this.suppliersService.findOne(purchaseOrder.supplierId)
+      mappedPurchaseOrders.push({...purchaseOrder, supplier})
+    }
+
+    return mappedPurchaseOrders
   }
 
   remove(id: number) {
