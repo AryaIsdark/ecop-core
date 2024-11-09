@@ -27,6 +27,10 @@ export class ProductsService {
     return 'This action adds a new product';
   }
 
+  async getClientProducts(clientId: number){
+    return await this.repository.find({where : {tenantId: clientId}})
+  }
+
   async query(
     params: ProductsQueryParams = { pageNumber: 1, pageSize: 25 },
   ): Promise<Paginate<Product>> {

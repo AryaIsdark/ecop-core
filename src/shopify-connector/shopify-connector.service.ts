@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { CreateShopifyConnectorDto } from './dto/create-shopify-connector.dto';
-import { UpdateShopifyConnectorDto } from './dto/update-shopify-connector.dto';
 import axios from 'axios';
 import { OrderStatus } from 'src/orders';
 import { CreateOrderDto } from 'src/orders/dto/create-order.dto';
@@ -9,16 +7,46 @@ import { getOrdersQuery } from './grqphql/queries/get-orders';
 import { runBulkQuery } from './utilities/run-bulk-query';
 import { pollBulkOperationStatus } from './utilities/poll-bulk-operation-status';
 import { fetchBulkOperationResults } from './utilities/fetch-bulk-operation-results';
+import { GET_PRODUCT_VARIANTS_WITH_INVENTORY_INFOR } from './grqphql/queries/get-products-with-inventory-information';
+import { InventoryStockSuggestion, ShopStockModel } from 'src/inventory-sync/inventory-sync.service';
+import { chunkArray } from 'src/utils/chunk-array/chunk-array';
+import { inventorySetQuantities } from './utilities/inventory-set-quantities';
+import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
+import { handleBulkQueryOperation } from './utilities/handle-bulk-query-operation';
 
 export interface ShopifyConfig {
+
   storeId: string
   accessToken: string
+  locationId?: string
+  stockAdjustmentModel?: ShopStockModel,
 }
 
 const API_VERSION = '2024-04'
 
 @Injectable()
 export class ShopifyConnectorService {
+
+  async syncInventory(shopifyConfig: ShopifyConfig, inventoryStockSuggestions: InventoryStockSuggestion[]) {
+    const allProducts = await handleBulkQueryOperation(shopifyConfig, GET_PRODUCT_VARIANTS_WITH_INVENTORY_INFOR);
+    const quantities = [];
+
+    for (const product of allProducts) {
+      const inventoryStockSuggestion = inventoryStockSuggestions.find((suggestion) => normalizeEAN(product.sku) === normalizeEAN(suggestion.product_ean))
+      quantities.push({
+        inventoryItemId: product.inventoryItem.id,
+        locationId: `gid://shopify/Location/${shopifyConfig.locationId}`,
+        quantity: inventoryStockSuggestion?.stockSuggestion ?? 0,
+        compareQuantity: null
+      });
+    }
+
+    const chunkedQuantities = chunkArray(quantities, 250);
+
+    for (const chunk of chunkedQuantities) {
+      await inventorySetQuantities(shopifyConfig, chunk);
+    }
+  }
 
   getAllOrders(orders) {
     const data = []
@@ -122,25 +150,5 @@ export class ShopifyConnectorService {
     catch (e) {
       throw (e)
     }
-  }
-
-  create(createShopifyConnectorDto: CreateShopifyConnectorDto) {
-    return 'This action adds a new shopifyConnector';
-  }
-
-  findAll() {
-    return `This action returns all shopifyConnector`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} shopifyConnector`;
-  }
-
-  update(id: number, updateShopifyConnectorDto: UpdateShopifyConnectorDto) {
-    return `This action updates a #${id} shopifyConnector`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} shopifyConnector`;
   }
 }

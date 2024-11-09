@@ -1,42 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { CreateInventorySyncDto } from './dto/create-inventory-sync.dto';
-import { UpdateInventorySyncDto } from './dto/update-inventory-sync.dto';
-import { JobConfiguration } from 'src/job-configurations';
+import { EntityType, JobConfiguration } from 'src/job-configurations';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { OngoingWmsConfig, OngoingWmsConnectorService } from 'src/ongoing-wms-connector/ongoing-wms-connector.service';
 import { WarehouseManagementSystemsService } from 'src/warehouse-management-systems';
 import { Inventory } from 'src/inventory/entities';
 import { WicsWmsConfig, WicsWmsConnectorService } from 'src/wics-wms-connector/wics-wms-connector.service';
+import { EcommercePlatformsService } from 'src/ecommerce-platforms';
+import { Product, ProductsService } from 'src/products';
+import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/shopify-connector.service';
+import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
+
+export type InventoryStockSuggestion = {
+  product_ean: string,
+  stockSuggestion: number,
+}
+
+export enum ShopStockModel {
+  TEST = 'test',
+  WAREHOUSE_FIRST_SUPPLIER_SECOND = 'warehouseFirstSupplierSecond',
+  SUPPLIER_FIRST_WAREHOUSE_SECOND = 'supplierFirstWarehouseSecond',
+  SUPPLIER_ONLY = 'supplierOnly',
+  WAREHOUSE_ONLY = 'warehouseOnly',
+  COMBINE_WAREHOUSE_AND_SUPPLIERS = 'combineWarehouseAndSuppliers'
+}
 
 @Injectable()
 export class InventorySyncService {
   constructor(
     private readonly inventoryService: InventoryService,
+    private readonly shopifyConnectorService: ShopifyConnectorService,
+    private readonly productsService: ProductsService,
     private readonly ongoingWmsConnectorService: OngoingWmsConnectorService,
     private readonly wicsWmsConnectorService: WicsWmsConnectorService,
+    private readonly ecommercePlatformService: EcommercePlatformsService,
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService) {
   }
-
-  create(createInventorySyncDto: CreateInventorySyncDto) {
-    return 'This action adds a new inventorySync';
-  }
-
-  findAll() {
-    return `This action returns all inventorySync`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} inventorySync`;
-  }
-
-  update(id: number, updateInventorySyncDto: UpdateInventorySyncDto) {
-    return `This action updates a #${id} inventorySync`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} inventorySync`;
-  }
-
 
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
     const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
@@ -63,7 +61,7 @@ export class InventorySyncService {
 
     this.inventoryService.upserInventory(clientId, inventories as Inventory[])
   }
-  
+
   async handleSyncWicsWmsInventory(config: WicsWmsConfig, clientId) {
     const wicsStocks = await this.wicsWmsConnectorService.getArticlesInventory(config)
     const inventories: Partial<Inventory>[] = []
@@ -83,8 +81,79 @@ export class InventorySyncService {
     this.inventoryService.upserInventory(clientId, inventories as Inventory[])
   }
 
+  getStockSuggestionBasedOnModel(model: ShopStockModel, supplierStock: number, warehouseStock: number): number {
+    if (model === ShopStockModel.TEST) {
+      return 111
+    }
 
-  async handleSyncInventoryJob(jobConfiguration: JobConfiguration) {
+    if (model === ShopStockModel.COMBINE_WAREHOUSE_AND_SUPPLIERS) {
+      return warehouseStock + supplierStock
+    }
+
+    if (model === ShopStockModel.WAREHOUSE_FIRST_SUPPLIER_SECOND) {
+      return warehouseStock ?? supplierStock
+    }
+    if (model === ShopStockModel.SUPPLIER_FIRST_WAREHOUSE_SECOND) {
+      return supplierStock ?? warehouseStock
+    }
+    if (model === ShopStockModel.SUPPLIER_ONLY) {
+      return supplierStock
+    }
+    if (model === ShopStockModel.WAREHOUSE_ONLY) {
+      return warehouseStock
+    }
+
+    return 0
+  }
+
+  getProductSupplierStockMap(products: Product[]): Map<string, number> {
+    const supplierStockMap = new Map<string, number>();
+    products.forEach((p) => {
+      const stock = supplierStockMap.get(p.ean) || 0;
+      supplierStockMap.set(p.ean, stock + Number(p.stock));
+    });
+    return supplierStockMap;
+  }
+
+  async getStockAdjustmentForClientStore(clientId: number, model: ShopStockModel): Promise<InventoryStockSuggestion[]> {
+    const inventories = await this.inventoryService.getClientInventories(clientId)
+    const products = await this.productsService.getClientProducts(clientId);
+    const suggestions: InventoryStockSuggestion[] = [];
+  
+    // Map inventories by normalized product_ean for quick lookup
+    const inventoryMap = new Map(inventories.map(inventory => [normalizeEAN(inventory.product_ean), inventory.actual_stock]));
+  
+    // Precompute supplier stock map
+    const supplierStockMap = this.getProductSupplierStockMap(products);
+  
+    for (const product of products) {
+      const warehouseStock = inventoryMap.get(normalizeEAN(product.ean)) || 0;
+      const supplierStock = supplierStockMap.get(product.ean) || 0;
+      const stockSuggestion = this.getStockSuggestionBasedOnModel(model, Number(supplierStock), warehouseStock);
+      suggestions.push({ product_ean: product.ean, stockSuggestion });
+    }
+  
+    return suggestions;
+  }
+
+  async handleEcommercePlatformSyncInventoryJob(jobConfiguration: JobConfiguration) {
+    const { entityReferenceId, tenantId, config } = jobConfiguration
+    const ecommercePlatform = await this.ecommercePlatformService.findOne(entityReferenceId)
+    const storeStockAdjustmentSuggestions = await this.getStockAdjustmentForClientStore(tenantId, config.stockAdjustmentModel)
+
+    try {
+      if (ecommercePlatform.name === 'shopify') {
+        await this.shopifyConnectorService.syncInventory(jobConfiguration.config as ShopifyConfig, storeStockAdjustmentSuggestions)
+      }
+    }
+    catch (e) {
+      throw (e)
+    }
+
+    return true
+  }
+
+  async handleWarehouseSyncInventoryJob(jobConfiguration: JobConfiguration) {
     const { entityReferenceId, config, entityType, tenantId } = jobConfiguration
     const warehouseManagemenSystem = await this.warehouseManagementSystemsService.findOne(entityReferenceId)
 
@@ -96,6 +165,24 @@ export class InventorySyncService {
         await this.handleSyncWicsWmsInventory(jobConfiguration.config as WicsWmsConfig, tenantId)
       }
     }
+    catch (e) {
+      throw (e)
+    }
+
+    return true
+  }
+
+  async handleSyncInventoryJob(jobConfiguration: JobConfiguration) {
+    const { entityType } = jobConfiguration
+    try {
+      if (entityType === EntityType.warehouseManagemenSystem) {
+        await this.handleWarehouseSyncInventoryJob(jobConfiguration)
+      }
+      if (entityType === EntityType.ecommercePlatform) {
+        await this.handleEcommercePlatformSyncInventoryJob(jobConfiguration)
+      }
+    }
+
     catch (e) {
       throw (e)
     }

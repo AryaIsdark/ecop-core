@@ -4,14 +4,17 @@ import { InventoryModule } from 'src/inventory/inventory.module';
 import { WarehouseManagementSystemsModule } from 'src/warehouse-management-systems';
 import { OngoingWmsConnectorModule } from 'src/ongoing-wms-connector/ongoing-wms-connector.module';
 import { WicsWmsConnectorModule } from 'src/wics-wms-connector/wics-wms-connector.module';
-import { PurchaseOrdersModule } from 'src/purchase-orders';
-import { PurchaseOrderLineItemsModule } from 'src/purchase-order-line-items';
-import { OrdersModule } from 'src/orders';
-import { OrderLinesModule } from 'src/order-lines';
+import { EcommercePlatformsModule } from 'src/ecommerce-platforms';
+import { ShopifyConnectorModule } from 'src/shopify-connector/shopify-connector.module';
+import { ProductsModule } from 'src/products';
 
 @Module({
   imports: [
+    ProductsModule,
+    ShopifyConnectorModule,
     InventoryModule,
+    EcommercePlatformsModule,
+    ShopifyConnectorModule,
     WarehouseManagementSystemsModule,
     OngoingWmsConnectorModule,
     WicsWmsConnectorModule,

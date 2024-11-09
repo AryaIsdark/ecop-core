@@ -1,6 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { CreateInventoryDto } from './dto/create-inventory.dto';
-import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { Inventory, InventoryQueryParams } from './entities';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, ILike, LessThan, MoreThan, Repository } from 'typeorm';
@@ -17,14 +15,6 @@ export class InventoryService {
 
   }
 
-  create(createInventoryDto: CreateInventoryDto) {
-    return 'This action adds a new inventory';
-  }
-
-  findAll() {
-    return `This action returns all inventory`;
-  }
-
   findWithEan(ean: string, clientId: number) {
     return this.repository.findOne({ where: { product_ean: ean, clientId } });
   }
@@ -32,12 +22,8 @@ export class InventoryService {
     return this.repository.findOne({ where: { id } });
   }
 
-  update(id: number, updateInventoryDto: UpdateInventoryDto) {
-    return `This action updates a #${id} inventory`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} inventory`;
+  async getClientInventories(clientId: number) {
+    return await this.repository.find({ where: { clientId } })
   }
 
   async query(
@@ -45,20 +31,20 @@ export class InventoryService {
   ): Promise<Paginate<Inventory>> {
     const take = params.pageSize;
     const skip = (params.pageNumber - 1) * params.pageSize;
-    let whereConditions : Record<string, any> = {
+    let whereConditions: Record<string, any> = {
 
     }
 
     if (params.clientId) {
-      whereConditions.clientId =  params.clientId 
+      whereConditions.clientId = params.clientId
     }
-  
+
     if (params.product_ean?.length) {
-      whereConditions.product_ean = ILike(`%${params.product_ean}%`) 
+      whereConditions.product_ean = ILike(`%${params.product_ean}%`)
     }
- 
+
     if (params.product_sku?.length) {
-      whereConditions.product_sku = ILike(`%${params.product_sku}%`) 
+      whereConditions.product_sku = ILike(`%${params.product_sku}%`)
     }
     if (params.sellable_number_of_items_less_than) {
       whereConditions.sellable_number_of_items = LessThan(params.sellable_number_of_items_less_than)
