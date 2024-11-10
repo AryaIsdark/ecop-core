@@ -23,33 +23,36 @@ export class PurchaseOrderSuggestionsService {
 
   async getCandidates(clientId: number) {
     const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
-    .where('inventory.clientId = :clientId', { clientId })
-    .andWhere(
+      .where('inventory.clientId = :clientId', { clientId })
+      .andWhere(
         '(inventory.actual_stock < inventory.stock_limit OR (inventory.stock_limit IS NULL AND inventory.actual_stock < 0))'
-    )
-    .getMany();
+      )
+      .getMany();
 
     return candidates;
-}
+  }
 
 
+   suggestPurchaseOrderCandidateQuantity(candidate: Inventory) {
+    return Math.abs(candidate.sellable_number_of_items)
+  }
 
   async suggestPurchaseOrders(clientId, supplierId): Promise<UpserPurchaseOrderSuggestionDto[]> {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
     const candidates = await this.getCandidates(clientId)
 
     for (const candidate of candidates) {
-      if(candidate.product_ean === '0733739047045'){
+      if (candidate.product_ean === '0733739047045') {
         console.log('')
       }
-      let matchProduct : Product
-      const products = await this.productsService.query({tenantId: clientId ,ean_normalized : candidate.product_ean, pageSize : 10, pageNumber: 1})
+      let matchProduct: Product
+      const products = await this.productsService.query({ tenantId: clientId, ean_normalized: candidate.product_ean, pageSize: 10, pageNumber: 1 })
       const filteredProducts = products.data.filter((product) => parseInt(product.stock) > 0)
-     
-      if(filteredProducts.length === 1 ){
+
+      if (filteredProducts.length === 1) {
         matchProduct = filteredProducts[0]
       }
-      if(filteredProducts.length > 1){
+      if (filteredProducts.length > 1) {
         matchProduct = identifyCheapestProducts(products.data)?.[0] as unknown as Product
       }
 
@@ -58,7 +61,7 @@ export class PurchaseOrderSuggestionsService {
           id: matchProduct.id,
           product_ean: matchProduct.ean,
           product_sku: matchProduct.sku,
-          quantity: 1,
+          quantity: this.suggestPurchaseOrderCandidateQuantity(candidate),
           clientId: clientId,
         };
 
