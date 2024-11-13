@@ -63,11 +63,13 @@ export class PurchaseOrderLineItemsService {
       return 'item already exists in the PO'
     }
 
+    const product = await this.productsService.findOne(productId)
+
     const linetItem = new PurchaseOrderLineItem()
     linetItem.clientId = clientId
     linetItem.productId = productId
-    linetItem.product_ean = product_ean
-    linetItem.product_sku = product_sku
+    linetItem.product_ean = product.ean
+    linetItem.product_sku = product.sku
     linetItem.purchaseOrderId = purchaseOrderId
     linetItem.supplierId = supplierId
     linetItem.quantity = quantity

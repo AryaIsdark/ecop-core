@@ -106,11 +106,21 @@ export class InventorySyncService {
     return 0
   }
 
+  getProductSupplierStock(product: Product, products: Product[]) {
+    let supplierStock = 0
+    const filteredProducts = products.filter((p) => product.ean === p.ean)
+    for (const product of filteredProducts) {
+      supplierStock = supplierStock + parseInt(product.stock)
+    }
+
+    return supplierStock
+  }
+
   getProductSupplierStockMap(products: Product[]): Map<string, number> {
     const supplierStockMap = new Map<string, number>();
     products.forEach((p) => {
-      const stock = supplierStockMap.get(p.ean) || 0;
-      supplierStockMap.set(p.ean, stock + Number(p.stock));
+      const stock = supplierStockMap.get(normalizeEAN(p.ean)) || 0;
+      supplierStockMap.set(normalizeEAN(p.ean), stock + parseInt(p.stock));
     });
     return supplierStockMap;
   }
@@ -119,20 +129,23 @@ export class InventorySyncService {
     const inventories = await this.inventoryService.getClientInventories(clientId)
     const products = await this.productsService.getClientProducts(clientId);
     const suggestions: InventoryStockSuggestion[] = [];
-  
+
     // Map inventories by normalized product_ean for quick lookup
     const inventoryMap = new Map(inventories.map(inventory => [normalizeEAN(inventory.product_ean), inventory.actual_stock]));
-  
+
     // Precompute supplier stock map
     const supplierStockMap = this.getProductSupplierStockMap(products);
-  
+
     for (const product of products) {
+      if (product.ean_normalized === '0850006755646') {
+        console.log(product)
+      }
       const warehouseStock = inventoryMap.get(normalizeEAN(product.ean)) || 0;
-      const supplierStock = supplierStockMap.get(product.ean) || 0;
+      const supplierStock = this.getProductSupplierStock(product, products)
       const stockSuggestion = this.getStockSuggestionBasedOnModel(model, Number(supplierStock), warehouseStock);
       suggestions.push({ product_ean: product.ean, stockSuggestion });
     }
-  
+
     return suggestions;
   }
 
