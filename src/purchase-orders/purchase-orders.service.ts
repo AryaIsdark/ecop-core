@@ -205,7 +205,24 @@ export class PurchaseOrdersService {
     return mappedPurchaseOrders
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} purchaseOrder`;
+  async remove(id: number) {
+    try {
+      const item = await this.repository.findOne({ where: { id } })
+      if (!item.id) {
+        return 'item with given id was not found'
+      }
+
+      await this.repository.delete(item.id);
+      return {
+        status: 200,
+        message: `succesfully deleted ${id}`,
+      };
+    } catch (e) {
+      return {
+        status: 400,
+        message: 'something went wrong',
+        error: e,
+      };
+    }
   }
 }

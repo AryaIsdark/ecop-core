@@ -123,7 +123,12 @@ export class PurchaseOrderLineItemsService {
 
   async remove(id: number) {
     try {
-      await this.repository.delete(id);
+      const item = await this.repository.findOne({ where: { id } })
+      if (!item.id) {
+        return 'item with given id was not found'
+      }
+
+      await this.repository.delete(item.id);
       return {
         status: 200,
         message: `succesfully deleted ${id}`,
