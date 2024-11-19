@@ -7,6 +7,7 @@ import { Product, ProductsService } from 'src/products';
 import { OrderLinesService } from 'src/order-lines';
 import { Inventory } from 'src/inventory/entities';
 import { identifyCheapestProducts } from 'src/utils';
+import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
 
 @Injectable()
@@ -59,7 +60,7 @@ export class PurchaseOrderSuggestionsService {
       if (matchProduct?.supplierId === supplierId) {
         const suggestion: UpserPurchaseOrderSuggestionDto = {
           id: matchProduct.id,
-          product_ean: matchProduct.ean,
+          product_ean: normalizeEAN(matchProduct.ean),
           product_sku: matchProduct.sku,
           quantity: this.suggestPurchaseOrderCandidateQuantity(candidate),
           clientId: clientId,
