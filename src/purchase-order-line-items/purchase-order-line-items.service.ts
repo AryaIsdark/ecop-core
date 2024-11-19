@@ -8,6 +8,7 @@ import { ProductsService } from 'src/products';
 import { ExportFormat } from 'src/base/export-format';
 import { CsvKeyMapping, exportToCsv } from 'src/utils/export-csv/export-csv';
 import { ExportPurchaseOrderLineItemsParams } from './dto/export-purchase-order-line-items.dto';
+import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
 @Injectable()
 export class PurchaseOrderLineItemsService {
@@ -68,7 +69,7 @@ export class PurchaseOrderLineItemsService {
     const linetItem = new PurchaseOrderLineItem()
     linetItem.clientId = clientId
     linetItem.productId = productId
-    linetItem.product_ean = product.ean
+    linetItem.product_ean = normalizeEAN(product.ean)
     linetItem.product_sku = product.sku
     linetItem.purchaseOrderId = purchaseOrderId
     linetItem.supplierId = supplierId
