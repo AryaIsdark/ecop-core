@@ -143,7 +143,21 @@ export class PurchaseOrderLineItemsService {
     }
   }
 
-  getExportFields(fields: string[]): CsvKeyMapping<PurchaseOrderLineItem>[] {
+  getExportFields(fields: string[], fieldsOrder: string[]): CsvKeyMapping<PurchaseOrderLineItem>[] {
+    const fieldMapping: Record<string, CsvKeyMapping<PurchaseOrderLineItem>> = {
+      name: { field: 'product.name', title: 'Name' },
+      ean: { field: 'product.ean', title: 'EAN' },
+      quantity: { field: 'quantity', title: 'Quantity' },
+      sku: { field: 'product.sku', title: 'SKU' },
+    };
+
+    return fieldsOrder
+      .filter(field => fields.includes(field)) // Ensure the field is in the fields parameter
+      .map(field => fieldMapping[field]) // Map to the corresponding key-value pair
+      .filter(Boolean); // Filter out undefined values
+  }
+
+  getExportFields_deprecated(fields: string[]): CsvKeyMapping<PurchaseOrderLineItem>[] {
     const keys = []
     if (fields.includes('name')) {
       keys.push({ field: 'product.name', title: 'Name' })
@@ -162,7 +176,7 @@ export class PurchaseOrderLineItemsService {
   }
 
   async export(params: ExportPurchaseOrderLineItemsParams) {
-    const { purchaseOrderId, exportFormat, fields, showHeader = true } = params
+    const { purchaseOrderId, exportFormat, fields, fieldsOrder, showHeader = true } = params
     const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } })
     const mappedLineItems = []
     for (const lineItem of lineItems) {
@@ -170,7 +184,7 @@ export class PurchaseOrderLineItemsService {
       mappedLineItems.push({ ...lineItem, product })
     }
 
-    const purchaseOrderKeys = this.getExportFields(fields)
+    const purchaseOrderKeys = this.getExportFields(fields, fieldsOrder ?? [])
 
     if (exportFormat === ExportFormat.CSV) {
       // Handle CSV export (.csv)
