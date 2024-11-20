@@ -98,7 +98,7 @@ export class OrdersService {
       whereConditions = { ...whereConditions, status: params.status }
     }
 
-    const [orders, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })
+    const [orders, count] = await this.repository.findAndCount({ where: whereConditions, order: {originalCreatedAt: 'DESC'}, take, skip })
 
     const mappedOrders = []
 
