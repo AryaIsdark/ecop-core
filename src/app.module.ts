@@ -6,14 +6,23 @@ import { DatabaseConfigService } from './database-config/database-config.service
 import { DataSourceOptions } from 'typeorm';
 import { UserSettingsModule } from './user-settings/user-settings.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ProductDescriptionModule } from './product-description/product-description.module';
+import { OpenaiModule } from './openai/openai.module';
+
+export interface CoreModuleOptions {
+  dataSourceOptions: DataSourceOptions;
+  envVariables?: Record<string, any>; // Accept additional environment variables
+}
 
 @Global()
 @Module({
-  imports: [UserSettingsModule], // Include necessary modules
-  providers: []
+  imports: [UserSettingsModule, ProductDescriptionModule, OpenaiModule], // Include necessary modules
+  providers: [],
 })
 export class CoreModule {
-  static forRoot(dataSourceOptions: DataSourceOptions): DynamicModule {
+  static forRoot(options: CoreModuleOptions): DynamicModule {
+    const { dataSourceOptions, envVariables } = options;
+
     return {
       module: CoreModule,
       imports: [
@@ -31,8 +40,15 @@ export class CoreModule {
         } as DataSourceOptions),
       ],
       controllers: [AppController],
-      providers: [AppService, DatabaseConfigService],
-      exports: [DatabaseConfigService],
+      providers: [
+        AppService,
+        DatabaseConfigService,
+        {
+          provide: 'CORE_ENV_VARIABLES', // Register the environment variables
+          useValue: envVariables || {},
+        },
+      ],
+      exports: [DatabaseConfigService, 'CORE_ENV_VARIABLES'], // Export the environment variables
     };
   }
 }

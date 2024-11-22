@@ -1,6 +1,6 @@
 {
   "name": "ecop-core",
-  "version": "0.0.222",
+  "version": "0.0.223",
   "description": "",
   "author": "",
   "private": false,
@@ -23,6 +23,7 @@
     "typeorm": "npm run build && npx typeorm -d dist/db/data-source.js"
   },
   "dependencies": {
+    "@nestjs/axios": "^3.1.2",
     "@nestjs/bull": "^10.1.1",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.2.3",

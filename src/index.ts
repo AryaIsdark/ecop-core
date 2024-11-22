@@ -22,4 +22,6 @@ export * from './product-analytics'
 export * from './utils'
 export * from './user-settings'
 export * from './inventory'
+export * from './product-description'
+export * from './openai'
 
