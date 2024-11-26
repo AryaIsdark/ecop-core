@@ -7,9 +7,10 @@ import { JobConfigurationsModule } from 'src/job-configurations/job-configuratio
 import { JobsModule } from 'src/jobs/jobs.module';
 import { EcommercePlatformsModule } from 'src/ecommerce-platforms';
 import { WarehouseManagementSystemsModule } from 'src/warehouse-management-systems';
+import { SubscriptionsModule } from 'src/subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Client]), JobsModule, EcommercePlatformsModule, SuppliersModule, JobConfigurationsModule, WarehouseManagementSystemsModule],
+  imports: [TypeOrmModule.forFeature([Client]), JobsModule, SubscriptionsModule, EcommercePlatformsModule, SuppliersModule, JobConfigurationsModule, WarehouseManagementSystemsModule],
   providers: [ClientsService],
   exports: [ClientsService]
 })

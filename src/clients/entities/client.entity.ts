@@ -21,15 +21,6 @@ export class Client extends BaseEntity {
   @Column()
   logo: string;
 
-  // @OneToMany(() => Product, (product) => product.client)
-  // clientProducts: Product[];
-
-  // @OneToMany(() => WmsOrder, (wmsOrder) => wmsOrder.client)
-  // wmsOrders: WmsOrder[];
-
-  // @OneToMany(() => JobConfiguration, (jobConfiguration) => jobConfiguration.client)
-  // jobConfigurations: JobConfiguration[];
- 
-  // @OneToMany(() => Job, (job) => job.client)
-  // jobs: Job[];
+  @Column({nullable: true})
+  subscriptionId: number;
 }

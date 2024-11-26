@@ -10,6 +10,7 @@ import { JobsService } from 'src/jobs/jobs.service';
 import { Order } from 'src/orders';
 import { EcommercePlatform, EcommercePlatformsService } from 'src/ecommerce-platforms';
 import { WarehouseManagementSystem, WarehouseManagementSystemsService } from 'src/warehouse-management-systems';
+import { SubscriptionsService } from 'src/subscriptions/subscriptions.service';
 
 export interface SupplierProductSyncJobConfiguration extends JobConfiguration {
   supplier: Supplier
@@ -35,7 +36,8 @@ export class ClientsService {
     private readonly ecommercePlatformService: EcommercePlatformsService,
     private readonly jobConfigurationsService: JobConfigurationsService,
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService,
-    private readonly jobsService: JobsService
+    private readonly jobsService: JobsService,
+    private readonly subscriptionsService: SubscriptionsService
   ) { }
 
   async getClientSuppliers(clientId: number): Promise<Supplier[]> {
@@ -122,7 +124,9 @@ export class ClientsService {
     return this.repository.find();
   }
 
-  findOne(id: number) {
-    return this.repository.findOne({ where: { id } });
+  async findOne(id: number) {
+    const client = await this.repository.findOne({ where: { id } });
+    const subscription = await this.subscriptionsService.findOne(client.subscriptionId)
+    return {...client, subscription}
   }
 }

@@ -8,6 +8,7 @@ import { UserSettingsModule } from './user-settings/user-settings.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ProductDescriptionModule } from './product-description/product-description.module';
 import { OpenaiModule } from './openai/openai.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 export interface CoreModuleOptions {
   dataSourceOptions: DataSourceOptions;
@@ -16,7 +17,7 @@ export interface CoreModuleOptions {
 
 @Global()
 @Module({
-  imports: [UserSettingsModule, ProductDescriptionModule, OpenaiModule], // Include necessary modules
+  imports: [UserSettingsModule, ProductDescriptionModule, OpenaiModule, SubscriptionsModule], // Include necessary modules
   providers: [],
 })
 export class CoreModule {
