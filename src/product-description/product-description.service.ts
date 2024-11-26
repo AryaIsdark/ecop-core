@@ -4,17 +4,29 @@ import { UpdateProductDescriptionDto } from './dto/update-product-description.dt
 import { InjectRepository } from '@nestjs/typeorm';
 import { ProductDescription } from './entities/product-description.entity';
 import { Repository } from 'typeorm';
+import { ClientsService } from 'src/clients';
+import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/shopify-connector.service';
 
 @Injectable()
 export class ProductDescriptionService {
   constructor(@InjectRepository(ProductDescription)
-  private readonly repository: Repository<ProductDescription>) {
+  private readonly repository: Repository<ProductDescription>,
+    private readonly clientsService: ClientsService,
+    private readonly shopifyConnectorService: ShopifyConnectorService) {
 
   }
 
 
   async getProductDescriptions(clientId, product_ean: string) {
     return await this.repository.find({ where: { clientId, product_ean } })
+  }
+
+  async updateStoreProductDescription(clientId: number, ean: string, description: string) {
+    const clientEcommercePlatform = await this.clientsService.getEcommercePlatofmJobConfigurations(clientId)
+    const ecommercePlatform = clientEcommercePlatform[0]
+    if (ecommercePlatform.ecommercePlatform.name = 'shopify') {
+      await this.shopifyConnectorService.updateProductDescription(clientEcommercePlatform[0].config as ShopifyConfig, ean, description )
+    }
   }
 
   async upsert(clientId: number, payload: Partial<CreateProductDescriptionDto>) {
@@ -29,7 +41,10 @@ export class ProductDescriptionService {
 
       productDescription.description = payload.description
 
-      return await this.repository.save(productDescription)
+      const response = await this.repository.save(productDescription)
+      await this.updateStoreProductDescription(clientId, payload.product_ean, payload.description)
+
+      return response
     }
     catch (e) {
       console.error(e)

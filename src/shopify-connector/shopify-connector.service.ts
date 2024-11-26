@@ -13,6 +13,7 @@ import { chunkArray } from 'src/utils/chunk-array/chunk-array';
 import { inventorySetQuantities } from './utilities/inventory-set-quantities';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 import { handleBulkQueryOperation } from './utilities/handle-bulk-query-operation';
+import { initializeShopify } from './utilities/initialize-shopify';
 
 export interface ShopifyConfig {
 
@@ -26,6 +27,85 @@ const API_VERSION = '2024-04'
 
 @Injectable()
 export class ShopifyConnectorService {
+
+  async getParentProductBySku(shopifyConfig: ShopifyConfig, sku: string) {
+    const query = `
+      {
+        productVariants(first: 1, query: "sku:${sku}") {
+          edges {
+            node {
+              id
+              sku
+              product {
+                id
+                title
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const shopify = await initializeShopify(shopifyConfig);
+    try {
+      const response = await shopify.graphql(query);
+
+      // Extracting product ID from the response
+      const edges = response?.productVariants?.edges || [];
+      if (edges.length > 0) {
+        return edges[0].node.product; // Return the product.id from the first edge
+      }
+
+      return null; // Return null if no edges are found
+    } catch (e) {
+      console.error(e);
+      throw e; // Re-throw the error after logging
+    }
+  }
+
+  async updateProductDescription(shopifyConfig: ShopifyConfig, sku: string, description: string): Promise<boolean> {
+    const productResponse = await this.getParentProductBySku(shopifyConfig, sku)
+
+    const mutation = `
+      mutation UpdateProductDescription($id: ID!, $descriptionHtml: String!) {
+        productUpdate(input: { id: $id, descriptionHtml: $descriptionHtml }) {
+          product {
+            id
+            descriptionHtml
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+
+    const shopify = await initializeShopify(shopifyConfig);
+
+    try {
+      const variables = {
+        id: productResponse.id,
+        descriptionHtml: description,
+      };
+
+      const response = await shopify.graphql(mutation, variables);
+
+      // Check for user errors in the response
+      const userErrors = response?.productUpdate?.userErrors || [];
+      if (userErrors.length > 0) {
+        console.error("User Errors:", userErrors);
+        return false; // Return false if there are errors
+      }
+
+      console.log("Product description updated successfully:", response.productUpdate.product);
+      return true; // Return true on success
+    } catch (e) {
+      console.error(e);
+      throw e; // Re-throw the error after logging
+    }
+  }
+
 
   async syncInventory(shopifyConfig: ShopifyConfig, inventoryStockSuggestions: InventoryStockSuggestion[]) {
     const allProducts = await handleBulkQueryOperation(shopifyConfig, GET_PRODUCT_VARIANTS_WITH_INVENTORY_INFOR);

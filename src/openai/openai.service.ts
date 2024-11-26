@@ -2,6 +2,23 @@ import { Injectable, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
+enum LanguageCode {
+  en = "en",
+  se = "se",
+  da = "da",
+  no = "no",
+}
+
+const languageMap: Record<LanguageCode, string> = {
+  [LanguageCode.en]: "English",
+  [LanguageCode.se]: "Swedish",
+  [LanguageCode.da]: "Danish",
+  [LanguageCode.no]: "Norwegian",
+};
+
+const mapLanguageCodeToName = (code: LanguageCode): string => {
+  return languageMap[code] || "Unknown Language";
+}
 @Injectable()
 export class OpenaiService {
   private readonly apiUrl = 'https://api.openai.com/v1/chat/completions';
@@ -18,8 +35,8 @@ export class OpenaiService {
     }
   }
 
-  async generateProductDescription(productName: string, attributes: Record<string, string>): Promise<string> {
-    const prompt = this.createPrompt(productName, attributes);
+  async generateProductDescription(lang: string, productName: string, attributes: Record<string, string>): Promise<string> {
+    const prompt = this.createPrompt(lang, productName, attributes);
 
     try {
       const response = await firstValueFrom(
@@ -50,11 +67,15 @@ export class OpenaiService {
     }
   }
 
-  private createPrompt(productName: string, attributes: Record<string, string>): string {
+  private createPrompt(lang: string, productName: string, attributes: Record<string, string>): string {
     const attributesDescription = Object.entries(attributes)
       .map(([key, value]) => `${key}: ${value}`)
       .join(', ');
 
-    return `Generate a compelling product description for a product named "${productName}". Key features include: ${attributesDescription}.`;
+    return `Write an SEO-optimized product description in this language "${mapLanguageCodeToName(lang as LanguageCode)}"about "${productName}" You can use these attributes as well: ${attributesDescription}. 
+    The description should contain at least 1000 words. Use sentence case for headings. 
+    Write the product description in shorter sections of at least 150 words each. 
+    All sections should have meaningful titles rather than generic placeholders. 
+    Refer to research in the article where relevant. Avoid repetition of words and sentences. Include HTML tags. Write about the product, and do not consider any potential flavors.`;
   }
 }

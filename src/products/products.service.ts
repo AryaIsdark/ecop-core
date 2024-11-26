@@ -9,7 +9,6 @@ import { SuppliersService } from 'src/suppliers';
 import { Paginate } from 'src/base/paginate';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
-
 @Injectable()
 export class ProductsService {
 
@@ -19,7 +18,7 @@ export class ProductsService {
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
     private readonly inventoryService: InventoryService,
-    private readonly suppliersService: SuppliersService
+    private readonly suppliersService: SuppliersService,
   ) {
 
   }
@@ -123,4 +122,5 @@ export class ProductsService {
   }
   
 
+  
 }
