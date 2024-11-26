@@ -17,6 +17,7 @@ export type WicsAnnouncementPayload = {
   reference: string;
   plannedDate: string;
   supplier: number;
+  type: string,
   lines: WicsAnnouncementLineItemPayload[];
 };
 
@@ -64,6 +65,7 @@ export class WicsWmsConnectorService {
 
     const payload: WicsAnnouncementPayload = {
       reference: params.reference,
+      type: 'STD2',
       plannedDate: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split("T")[0], // current date + 5 days
       supplier: 0,
       lines
