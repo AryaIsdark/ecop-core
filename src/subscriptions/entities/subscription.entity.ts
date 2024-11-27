@@ -5,7 +5,7 @@ export enum SubscriptionType {
     TRIAL = 'trial',
     BASIC = 'basic',
     PRO = 'pro',
-    SUPER = 'super',
+    UNLIMITED = 'unlimited',
     ENTERPRISE = 'enterprise',
 }
 
