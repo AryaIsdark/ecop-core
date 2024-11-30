@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v2 as cloudinary, UploadApiErrorResponse, UploadApiResponse } from 'cloudinary';
 import { CreateProductMediaDto } from './dto/create-product-media.dto';
-import { ProductMedia, ProductMediaType } from './entities/product-media.entity';
+import { ProductMedia } from './entities/product-media.entity';
 
 @Injectable()
 export class ProductMediaService {
@@ -18,6 +18,61 @@ export class ProductMediaService {
     });
 
   }
+
+  async uploadFromUrl(uploadData: { url: string, createProductMediaDto: CreateProductMediaDto }[]) {
+    if (!uploadData.length) {
+      throw new BadRequestException('No data provided');
+    }
+
+    const CONCURRENCY_LIMIT = 10; // Adjust concurrency limit as needed
+    const uploadResults: { result?: any; dto?: CreateProductMediaDto; error?: any }[] = [];
+
+    const processQueue = async () => {
+      while (uploadData.length) {
+        const batch = uploadData.splice(0, CONCURRENCY_LIMIT); // Take a batch of tasks
+
+        const promises = batch.map(async ({ url, createProductMediaDto }) => {
+          try {
+            const result = await cloudinary.uploader.upload(url, { resource_type: 'auto', folder: 'ProductMedia' });
+
+            const productMedia = this.productMediaRepository.create({
+              product_ean: createProductMediaDto.product_ean,
+              clientId: createProductMediaDto.clientId,
+              type: createProductMediaDto.type,
+              thumbnail_url: result.secure_url,
+              media_url: result.secure_url, // Use the same URL for thumbnail if no specific thumbnail provided
+            });
+
+            const savedMedia = await this.productMediaRepository.save(productMedia);
+            return { result: savedMedia, dto: createProductMediaDto }; // Store successful result
+          } catch (dbError) {
+            return { error: dbError, dto: createProductMediaDto }; // Store error
+          }
+        });
+
+        // Wait for all promises in the batch to complete
+        const batchResults = await Promise.all(promises);
+
+        // Add the batch results to the final results
+        uploadResults.push(...batchResults);
+      }
+    };
+
+    // Process the queue
+    await processQueue();
+
+    // Handle the results
+    const successfulUploads = uploadResults.filter((entry) => entry.result);
+    const failedUploads = uploadResults.filter((entry) => entry.error);
+
+    if (failedUploads.length > 0) {
+      console.warn('Some uploads failed:', failedUploads.map((entry) => entry.dto));
+    }
+
+    // Return successful uploads
+    return successfulUploads.map((entry) => entry.result);
+  }
+
 
   async uploadFile(file: Express.Multer.File, createProductMediaDto: CreateProductMediaDto): Promise<ProductMedia> {
     if (!file) {

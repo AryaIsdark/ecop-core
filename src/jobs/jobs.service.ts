@@ -39,6 +39,9 @@ export class JobsService {
     await this.updateStatus(currentJob.id, JobStatus.Processing)
 
     try {
+      if (jobConfiguration.actionType === JobActionType.SyncProductImages) {
+        await this.productSyncService.handleSyncProductImagesJob(jobConfiguration)
+      }
       if (jobConfiguration.actionType === JobActionType.SyncProducts) {
         await this.productSyncService.handleSyncProductJob(jobConfiguration)
       }

@@ -66,6 +66,9 @@ export class InventorySyncService {
     const wicsStocks = await this.wicsWmsConnectorService.getArticlesInventory(config)
     const inventories: Partial<Inventory>[] = []
     for (const item of wicsStocks) {
+      if(item.itemCode === '0087614018522'){
+        console.log('hello', item)
+      }
       const inventory = new Inventory()
       inventory.clientId = clientId;
       inventory.article_number = item.itemCode;
@@ -74,7 +77,7 @@ export class InventorySyncService {
       inventory.sellable_number_of_items = item.nettoSalable
       inventory.number_of_items = item.physical
       inventory.to_receive_number_of_items = item.announced
-      inventory.actual_stock = item.nettoSalable + item.announced
+      inventory.actual_stock = item.nettoSalable
       inventories.push(inventory)
     }
 

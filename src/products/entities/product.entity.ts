@@ -39,6 +39,9 @@ export class Product {
 
   @Column({ nullable: true })
   ean_normalized: string;
+ 
+  @Column({ nullable: true })
+  main_image_url: string;
 
   // @OneToMany(() => PurchaseOrderLineItem, (lineItem) => lineItem.product)
   // purchaseOrderLineItems: Promise<PurchaseOrderLineItem[]>;
