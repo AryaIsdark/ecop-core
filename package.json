@@ -1,6 +1,6 @@
 {
   "name": "ecop-core",
-  "version": "0.0.233",
+  "version": "0.0.234",
   "description": "",
   "author": "",
   "private": false,
@@ -21,7 +21,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "typeorm": "npm run build && npx typeorm -d dist/db/data-source.js",
-    "yalc:publish": "yarn build && yalc push"
+    "yalc:publish": "yarn build && yalc push",
+    "npm:publish": "yarn build && npm publish"
   },
   "dependencies": {
     "@nestjs/axios": "^3.1.2",
