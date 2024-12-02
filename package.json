@@ -20,7 +20,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "typeorm": "npm run build && npx typeorm -d dist/db/data-source.js"
+    "typeorm": "npm run build && npx typeorm -d dist/db/data-source.js",
+    "yalc:publish": "yarn build && yalc push"
   },
   "dependencies": {
     "@nestjs/axios": "^3.1.2",
@@ -40,9 +41,11 @@
     "bull": "^4.13.1",
     "cloudinary": "^2.5.1",
     "cron": "^3.1.7",
+    "crypto": "^1.0.1",
     "json-2-csv": "^5.5.4",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
+    "p-limit": "^6.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "puppeteer": "^23.2.1",

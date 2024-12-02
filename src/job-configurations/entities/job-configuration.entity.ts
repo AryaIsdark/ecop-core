@@ -6,7 +6,8 @@ export enum JobActionType {
   SyncOrders = 'sync-orders',
   SyncInventory = 'sync-inventory',
   SyncCustomers = 'sync-customers',
-  WebAutomation = 'web-automation'
+  WebAutomation = 'web-automation',
+  SyncProductImages = 'sync-product-images'
 
 }
 

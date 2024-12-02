@@ -8,6 +8,7 @@ import { InventoryService } from 'src/inventory/inventory.service';
 import { SuppliersService } from 'src/suppliers';
 import { Paginate } from 'src/base/paginate';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
+import { ProductMediaService } from 'src/product-media';
 
 @Injectable()
 export class ProductsService {
@@ -19,6 +20,7 @@ export class ProductsService {
     private readonly entityManager: EntityManager,
     private readonly inventoryService: InventoryService,
     private readonly suppliersService: SuppliersService,
+    private readonly productMediaSerivce: ProductMediaService
   ) {
 
   }
@@ -66,8 +68,9 @@ export class ProductsService {
 
     for (const product of products) {
       const inventoryInfo = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
+      const media = await this.productMediaSerivce.getProductMedia(product.ean_normalized)
       const supplier = await this.suppliersService.findOne(product.supplierId);
-      productsWithInventory.push({ ...product, inventoryInfo, supplier })
+      productsWithInventory.push({ ...product, inventoryInfo, supplier, media })
     }
 
     return {

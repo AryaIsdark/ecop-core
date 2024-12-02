@@ -19,6 +19,7 @@ export type PowerBodyProduct = {
   price1?: string,
   price2?: string,
   price3?: string,
+  main_image_url?: string, 
 }
 
 export enum PowerbodyWebautomationAction {
@@ -121,6 +122,7 @@ export class PowerbodyConnectorService {
         sku: powerbodyProduct.sku,
         price: Number(powerbodyProduct.price1 ?? powerbodyProduct.price2 ?? powerbodyProduct.price3),
         stock: powerbodyProduct.stock,
+        main_image_url: powerbodyProduct.main_image_url,
       };
     });
 
