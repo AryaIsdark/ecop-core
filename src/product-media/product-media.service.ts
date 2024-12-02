@@ -1,11 +1,10 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { v2 as cloudinary, UploadApiErrorResponse, UploadApiResponse } from 'cloudinary';
 import { CreateProductMediaDto } from './dto/create-product-media.dto';
 import { ProductMedia, ProductMediaStatus } from './entities/product-media.entity';
 import * as crypto from 'crypto';
-import { ConfigService } from '@nestjs/config'; // For managing sensitive data
 
 @Injectable()
 export class ProductMediaService {
@@ -14,16 +13,16 @@ export class ProductMediaService {
   constructor(
     @InjectRepository(ProductMedia)
     private readonly productMediaRepository: Repository<ProductMedia>,
-    private readonly configService: ConfigService, // Inject configuration service
+    @Inject('CORE_ENV_VARIABLES') private readonly envVariables: Record<string, any>,
   ) {
     this.initializeCloudinary();
   }
 
   private initializeCloudinary() {
     cloudinary.config({
-      cloud_name: this.configService.get<string>('CLOUDINARY_CLOUD_NAME'),
-      api_key: this.configService.get<string>('CLOUDINARY_API_KEY'),
-      api_secret: this.configService.get<string>('CLOUDINARY_API_SECRET'),
+      cloud_name:  this.envVariables.CLOUDINARY_CLOUD_NAME,
+      api_key: this.envVariables.CLOUDINARY_API_KEY,
+      api_secret: this.envVariables.CLOUDINARY_API_SECRET,
     });
   }
 
@@ -39,8 +38,8 @@ export class ProductMediaService {
     return this.productMediaRepository.find({ where: { product_ean: productEan } });
   }
 
-  private async uploadToCloudinary(url: string): Promise<UploadApiResponse> {
-    return cloudinary.uploader.upload(url, { resource_type: 'auto', folder: 'ProductMedia' });
+  private async uploadToCloudinary(url: string, clientId: number): Promise<UploadApiResponse> {
+    return cloudinary.uploader.upload(url, { resource_type: 'auto', folder: `client-id-${clientId}` });
   }
 
   private async saveMediaRecord(dto: CreateProductMediaDto, urlHash: string, mediaUrl: string, status: ProductMediaStatus): Promise<ProductMedia> {
@@ -76,7 +75,7 @@ export class ProductMediaService {
             return { result: existingMedia, dto: createProductMediaDto };
           }
 
-          const { secure_url } = await this.uploadToCloudinary(url);
+          const { secure_url } = await this.uploadToCloudinary(url, createProductMediaDto.clientId);
           const savedMedia = await this.saveMediaRecord(createProductMediaDto, urlHash, secure_url, ProductMediaStatus.UPLOADED);
           return { result: savedMedia, dto: createProductMediaDto };
         } catch (error) {
