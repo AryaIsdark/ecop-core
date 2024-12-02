@@ -120,7 +120,7 @@ export class ProductMediaService {
 
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
-        { resource_type: 'auto', folder: 'ProductMedia' },
+        { resource_type: 'auto', folder: `client-id-${createProductMediaDto.clientId}` },
         async (error: UploadApiErrorResponse, result: UploadApiResponse) => {
           if (error) {
             await this.saveMediaRecord(createProductMediaDto, urlHash, '', ProductMediaStatus.FAILED);
