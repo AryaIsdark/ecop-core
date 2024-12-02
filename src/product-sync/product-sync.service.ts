@@ -18,7 +18,7 @@ export class ProductSyncService {
     console.log('I ran handleSyncProductImagesJob')
     const products = await this.productsService.getClientProducts(jobConfiguration.tenantId)
     let uploadMediaItems = []
-    for (const product of products.filter((p)=> p.main_image_url?.length && p.ean_normalized).slice(0, 1000)) {
+    for (const product of products.filter((p)=> p.main_image_url?.length && p.ean_normalized)) {
       const createProductMediaDto: CreateProductMediaDto = {
         clientId: jobConfiguration.tenantId,
         product_ean: product.ean_normalized,

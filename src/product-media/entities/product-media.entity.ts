@@ -2,9 +2,16 @@
 import { BaseEntity } from 'src/base/base-entity';
 import { Entity, Column, } from 'typeorm';
 
+
 export enum ProductMediaType {
     IMAGE = 'image',
     VIDEO = 'video'
+}
+
+export enum ProductMediaStatus {
+    PENDING='pending',
+    UPLOADED = 'uploaded',
+    FAILED = 'failed'
 }
 
 
@@ -29,4 +36,14 @@ export class ProductMedia extends BaseEntity {
 
     @Column()
     media_url: string
+
+    @Column()
+    url_hash: string
+   
+    @Column({
+        nullable: false,
+        type: 'enum',
+        enum: ProductMediaStatus,
+    })
+    status: ProductMediaStatus
 }
