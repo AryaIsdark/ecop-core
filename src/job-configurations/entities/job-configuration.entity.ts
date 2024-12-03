@@ -12,6 +12,7 @@ export enum JobActionType {
 }
 
 export enum EntityType {
+  general= 'general',
   supplier = 'supplier',
   warehouseManagemenSystem = 'warehouse-management-system',
   order = 'order',

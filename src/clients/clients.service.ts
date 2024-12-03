@@ -56,6 +56,16 @@ export class ClientsService {
     return clientSuppliers;
   }
 
+  async getGeneralJobConfigurations(clientId: number): Promise<JobConfiguration[]> {
+     const jobConfigurations =  await this.jobConfigurationsService.query(clientId, { entityType: EntityType.general })
+     const mappedJobConfigurations = []
+     for (const jobConfiguration of jobConfigurations) {              
+       const jobs = await this.jobsService.search({ entityReferenceId: jobConfiguration.id })
+       mappedJobConfigurations.push({ ...jobConfiguration, jobs })
+     }
+
+     return mappedJobConfigurations
+  }
 
   async getSupplierJobConfigurations(clientId: number): Promise<SupplierProductSyncJobConfiguration[]> {
     const jobConfigurations = await this.jobConfigurationsService.query(clientId, { entityType: EntityType.supplier })

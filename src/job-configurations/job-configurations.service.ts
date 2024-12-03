@@ -20,7 +20,7 @@ export class JobConfigurationsService {
   }
 
   async upsert(createJobConfigurationDto: CreateJobConfigurationDto) {
-    const { tenantId, entityReferenceId, config, syncType, entityType, actionType } = createJobConfigurationDto
+    const { tenantId, entityReferenceId, config, syncType, entityType, actionType, cronExpression } = createJobConfigurationDto
     try {
       if (tenantId) {
         let jobConfiguration = await this.repository.findOne({
@@ -42,6 +42,7 @@ export class JobConfigurationsService {
         jobConfiguration.config = JSON.parse(config.toString());
         jobConfiguration.entityType = entityType
         jobConfiguration.actionType = actionType
+        jobConfiguration.cronExpression = cronExpression
 
         await this.repository.save(jobConfiguration);
       }

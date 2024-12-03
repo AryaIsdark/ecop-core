@@ -6,5 +6,6 @@ export class CreateJobConfigurationDto {
     entityType: EntityType
     entityReferenceId: number
     syncType: string
+    cronExpression: string
     config: Record<string, any>
 }
