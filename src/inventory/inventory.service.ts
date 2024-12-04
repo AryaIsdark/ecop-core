@@ -26,6 +26,17 @@ export class InventoryService {
     return await this.repository.find({ where: { clientId } })
   }
 
+  async updateStockLimit(id: number, newStockLimit: number){
+    const inventory = await this.repository.findOne({where: {id}})
+    if(!inventory){
+      return 'inventory item not found'
+    }
+
+    inventory.stock_limit = newStockLimit
+
+    return await this.repository.save(inventory)
+  }
+
   async query(
     params: InventoryQueryParams = { pageNumber: 1, pageSize: 25 },
   ): Promise<Paginate<Inventory>> {
