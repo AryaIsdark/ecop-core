@@ -12,6 +12,7 @@ export * from './openai';
 export * from './order-lines';
 export * from './orders';
 export * from './product-analytics';
+export * from './product-categories'
 export * from './product-description';
 export * from './product-media';
 export * from './products';

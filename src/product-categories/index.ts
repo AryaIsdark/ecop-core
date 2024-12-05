@@ -1,0 +1,5 @@
+export * from './dto/create-product-category.dto'
+export * from './dto/update-product-category.dto'
+export * from './entities/product-category.entity'
+export * from './product-categories.module'
+export * from './product-categories.service'
