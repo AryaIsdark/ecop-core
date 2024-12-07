@@ -5,6 +5,7 @@ import { JobConfiguration } from 'src/job-configurations/entities/job-configurat
 import { getProductsFromXML, readAndMapExcel } from 'src/utils';
 import { CreateProductMediaDto } from 'src/product-media/dto/create-product-media.dto';
 import { ProductMediaService, ProductMediaType } from 'src/product-media';
+import { readWebApiFeed } from 'src/utils/read-webapi-feed/read-webapi-feed';
 
 @Injectable()
 export class ProductSyncService {
@@ -60,6 +61,18 @@ export class ProductSyncService {
     }
   }
 
+  async handleSyncWebApiJob(jobConfiguration: JobConfiguration) {
+    try {
+      const { entityReferenceId, tenantId, config } = jobConfiguration
+      const { feed_url, productMappingKeys, authorization, responsePath } = config
+      const data = await readWebApiFeed(feed_url, authorization, responsePath, productMappingKeys )
+      await this.handleSyncProducts(tenantId, entityReferenceId, data as unknown as Product[])
+    }
+    catch (e) {
+      throw (e)
+    }
+  }
+
 
 
   async handleSyncProductJob(jobConfiguration: JobConfiguration) {
@@ -69,6 +82,9 @@ export class ProductSyncService {
       }
       if (jobConfiguration.syncType === 'ExcelFeed') {
         await this.handleSyncExcelFeedJob(jobConfiguration)
+      }
+      if (jobConfiguration.syncType === 'WebAPI') {
+        await this.handleSyncWebApiJob(jobConfiguration)
       }
     }
     catch (e) {
