@@ -45,10 +45,10 @@ export class InventorySyncService {
       inventory.article_number = article.articleNumber;
       inventory.product_ean = article.articleNumber;
       inventory.product_sku = article.articleNumber;
-      inventory.sellable_number_of_items = article.sellableNumberOfItems
-      inventory.number_of_items = article.numberOfItems
-      inventory.to_receive_number_of_items = article.toReceiveNumberOfItems
-      inventory.actual_stock = article.sellableNumberOfItems + article.toReceiveNumberOfItems
+      inventory.sellable_number_of_items = article.inventoryInfo.sellableNumberOfItems
+      inventory.number_of_items = article.inventoryInfo.numberOfItems
+      inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
+      inventory.actual_stock = article.inventoryInfo.sellableNumberOfItems + article.inventoryInfo.toReceiveNumberOfItems
 
       inventories.push(inventory)
     }
