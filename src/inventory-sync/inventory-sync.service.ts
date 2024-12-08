@@ -41,20 +41,14 @@ export class InventorySyncService {
     const inventories: Partial<Inventory>[] = []
     for (const article of articles) {
       const inventory = new Inventory()
-      inventory.clientId = clientId
+      inventory.clientId = clientId;
       inventory.article_number = article.articleNumber;
       inventory.product_ean = article.articleNumber;
       inventory.product_sku = article.articleNumber;
-      inventory.number_of_book_items = article.inventory.numberOfBookedItems
-      inventory.to_receive_number_of_items = article.inventory.toReceiveNumberOfItems
-      inventory.stock_limit = article.stockLimit
-      inventory.number_of_items = this.ongoingWmsConnectorService.extractTotalAvailableStock(article);
-      inventory.actual_stock = this.ongoingWmsConnectorService.calculateAdjustmentQuantity({
-        numberOfItems: inventory.number_of_items,
-        numberOfBookedItems: inventory.number_of_book_items,
-        numberOfIncomingItems: inventory.to_receive_number_of_items,
-        stockLimit: article.stockLimit
-      })
+      inventory.sellable_number_of_items = article.sellableNumberOfItems
+      inventory.number_of_items = article.numberOfItems
+      inventory.to_receive_number_of_items = article.toReceiveNumberOfItems
+      inventory.actual_stock = article.sellableNumberOfItems + article.toReceiveNumberOfItems
 
       inventories.push(inventory)
     }
