@@ -26,6 +26,17 @@ export class PurchaseOrderSuggestionsService {
     const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
       .where('inventory.clientId = :clientId', { clientId })
       .andWhere(
+        'inventory.actual_stock < 0'
+      )
+      .getMany();
+
+    return candidates;
+  }
+
+  async getCandidate_old(clientId: number) {
+    const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
+      .where('inventory.clientId = :clientId', { clientId })
+      .andWhere(
         '(inventory.actual_stock < inventory.stock_limit OR (inventory.stock_limit IS NULL AND inventory.actual_stock < 0))'
       )
       .getMany();
