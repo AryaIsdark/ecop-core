@@ -98,38 +98,52 @@ export class WicsWmsConnectorService {
     let page = 1;
     let allResults: WicsStock[] = [];
     let hasMoreData = true;
-    const requestsWithErrors = []
-    let apiUrl = ''
-
-
+    const requestsWithErrors: { url: string; error: any }[] = [];
+  
     while (hasMoreData) {
-      apiUrl = `${config.apiBaseUrl}/stock?pageSize=${pageSize}&page=${page}`
+      const apiUrl = `${config.apiBaseUrl}/stock?pageSize=${pageSize}&page=${page}`;
+  
       try {
         const response = await axios.get(apiUrl, {
           headers: { Authorization: config.authorization },
         });
-
-        const results = response.data?.data;
+  
+        const results = response.data?.data || [];
+  
         if (results.length > 0) {
-          allResults = [...allResults, ...results];
+          allResults = allResults.concat(results);
           page++;
         }
-
+  
         if (results.length < pageSize) {
           hasMoreData = false;
-          return allResults
         }
-
+  
+        // Introduce a delay to mitigate potential rate-limiting issues
         await this.delay(500);
-
-      }
-      catch (e) {
-        requestsWithErrors.push({ url: apiUrl, error: e?.response?.data })
-        console.error('WicsWmsConnectorService.getArticlesInventory', e?.response?.data);
+  
+      } catch (error) {
+        const errorCode = error?.response?.data?.code;
+  
+        requestsWithErrors.push({ url: apiUrl, error: error?.response?.data });
+        console.error('Error in getArticlesInventory:', {
+          url: apiUrl,
+          error: error?.response?.data,
+        });
+  
+        if (errorCode === 429) {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
       }
     }
-    return allResults
+  
+    if (requestsWithErrors.length > 0) {
+      console.warn('Completed with errors:', requestsWithErrors);
+    }
+  
+    return allResults;
   }
+  
 
 
   create(createWicsWmsConnectorDto: CreateWicsWmsConnectorDto) {
