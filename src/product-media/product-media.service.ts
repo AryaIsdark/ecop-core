@@ -34,8 +34,8 @@ export class ProductMediaService {
     return this.productMediaRepository.find();
   }
 
-  async getProductMedia(productEan: string): Promise<ProductMedia[]> {
-    return this.productMediaRepository.find({ where: { product_ean: productEan } });
+  async getProductMedia(productEan: string, clientId:number): Promise<ProductMedia[]> {
+    return this.productMediaRepository.find({ where: { product_ean: productEan, clientId } });
   }
 
   private async uploadToCloudinary(url: string, clientId: number): Promise<UploadApiResponse> {

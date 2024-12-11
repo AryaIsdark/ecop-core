@@ -68,7 +68,7 @@ export class ProductsService {
 
     for (const product of products) {
       const inventoryInfo = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
-      const media = await this.productMediaSerivce.getProductMedia(product.ean_normalized)
+      const media = await this.productMediaSerivce.getProductMedia(product.ean_normalized, product.tenantId)
       const supplier = await this.suppliersService.findOne(product.supplierId);
       productsWithInventory.push({ ...product, inventoryInfo, supplier, media })
     }
