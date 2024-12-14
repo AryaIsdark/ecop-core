@@ -8,6 +8,7 @@ export * from './inventory';
 export * from './job-configurations';
 export * from './jobs';
 export * from './jobs/jobs.service';
+export * from './job-processor';
 export * from './openai';
 export * from './order-lines';
 export * from './orders';

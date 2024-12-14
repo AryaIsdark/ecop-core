@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 import { JobConfigurationsService } from 'src/job-configurations';
-import { JobsService } from 'src/jobs';
+import { JobProcessorService } from 'src/job-processor';
 
 @Injectable()
 export class CronJobsService {
@@ -11,7 +11,7 @@ export class CronJobsService {
 
     constructor(
         private readonly jobConfigurationsService: JobConfigurationsService,
-        private readonly jobsService: JobsService,
+        private readonly jobProcessorService: JobProcessorService,
         private scheduleRegistry: SchedulerRegistry,
     ) {}
 
@@ -21,7 +21,7 @@ export class CronJobsService {
         for (const jobConfiguration of jobConfigurations) {
             if (jobConfiguration.cronExpression?.length) {
                 const cronJob = new CronJob(jobConfiguration.cronExpression, () => {
-                    this.enqueueJob(jobConfiguration.id.toString(), () => this.jobsService.addNewJobAdhoc(jobConfiguration.id) as unknown  as Promise<void>);
+                    this.enqueueJob(jobConfiguration.id.toString(), () => this.jobProcessorService.addNewJobAdhoc(jobConfiguration.id) as unknown  as Promise<void>);
                 });
 
                 this.scheduleRegistry.addCronJob(`${jobConfiguration.id}`, cronJob);

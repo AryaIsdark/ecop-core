@@ -11,6 +11,7 @@ import { OpenaiModule } from './openai/openai.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ProductMediaModule } from './product-media/product-media.module';
 import { ProductCategoriesModule } from './product-categories/product-categories.module';
+import { JobProcessorModule } from './job-processor/job-processor.module';
 
 export interface CoreModuleOptions {
   dataSourceOptions: DataSourceOptions;
@@ -19,7 +20,7 @@ export interface CoreModuleOptions {
 
 @Global()
 @Module({
-  imports: [UserSettingsModule, ProductDescriptionModule, OpenaiModule, SubscriptionsModule, ProductMediaModule, ProductCategoriesModule], // Include necessary modules
+  imports: [UserSettingsModule, ProductDescriptionModule, OpenaiModule, SubscriptionsModule, ProductMediaModule, ProductCategoriesModule, JobProcessorModule], // Include necessary modules
   providers: [],
 })
 export class CoreModule {

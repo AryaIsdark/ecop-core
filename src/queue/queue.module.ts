@@ -5,10 +5,11 @@ import { QueueProcessor } from './queue.processor';
 import { JobsModule } from 'src/jobs/jobs.module';
 import { JobConfigurationsModule } from 'src/job-configurations';
 import { ConfigModule } from '@nestjs/config';
+import { JobProcessorModule } from 'src/job-processor';
 
 @Module({
   imports: [
-    JobsModule,
+    JobProcessorModule,
     JobConfigurationsModule,
     ConfigModule // Import the ConfigModule to access environment variables
   ],

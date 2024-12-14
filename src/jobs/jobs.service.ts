@@ -1,15 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { UpdateJobDto } from './dto/update-job.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Job, JobStatus, JobsSearchParams } from './entities/job.entity';
 import { Repository } from 'typeorm';
-import { JobConfigurationsService } from 'src/job-configurations/job-configurations.service';
-import { JobActionType } from 'src/job-configurations/entities/job-configuration.entity';
-import { ProductSyncService } from 'src/product-sync/product-sync.service';
-import { OrderSyncService } from 'src/order-sync/order-sync.service';
-import { InventorySyncService } from 'src/inventory-sync/inventory-sync.service';
-import { WebAutomationsService } from 'src/web-automations/web-automations.service';
-import { PurchaseOrderSyncService } from 'src/purchase-order-sync/purchase-order-sync.service';
+import { ClientsService } from 'src/clients';
+import { JobConfigurationsService } from 'src/job-configurations';
 
 @Injectable()
 export class JobsService {
@@ -17,81 +12,12 @@ export class JobsService {
   constructor(
     @InjectRepository(Job)
     private readonly repository: Repository<Job>,
-    private readonly jobConfigurationService: JobConfigurationsService,
-    private readonly productSyncService : ProductSyncService,
-    private readonly purchaseOrderSyncService : PurchaseOrderSyncService,
-    private readonly orderSyncService : OrderSyncService,
-    private readonly inventorySyncService : InventorySyncService,
-    private readonly webAutomationService : WebAutomationsService
+    @Inject(forwardRef(() => ClientsService))
+    private readonly clientsService: ClientsService,
+    @Inject(forwardRef(() => JobConfigurationsService))
+    private readonly jobConfigurationsService: JobConfigurationsService,
   ) {
 
-  }
-
-  async processJob(jobId: number) {
-    const currentJob = await this.repository.findOne({where: {id : jobId}})
-    const jobConfiguration = await this.jobConfigurationService.findOne(currentJob.entityReferenceId)
-    if (!jobConfiguration) {
-      // handle not found
-      console.log(`Unable to find job configuration with id ${currentJob.entityReferenceId}`)
-      return `Unable to find job configuration with id ${currentJob.entityReferenceId}`
-    }
-
-    await this.updateStatus(currentJob.id, JobStatus.Processing)
-
-    try {
-      if (jobConfiguration.actionType === JobActionType.SyncProductImages) {
-        await this.productSyncService.handleSyncProductImagesJob(jobConfiguration)
-      }
-      if (jobConfiguration.actionType === JobActionType.SyncProducts) {
-        await this.productSyncService.handleSyncProductJob(jobConfiguration)
-      }
-      if(jobConfiguration.actionType === JobActionType.SyncOrders){
-        await this.orderSyncService.handleSyncOrderJob(jobConfiguration)
-      } 
-      if(jobConfiguration.actionType === JobActionType.SyncPurchaseOrders){
-        await this.purchaseOrderSyncService.handleSyncPurchaseOrderJob(jobConfiguration)
-      } 
-      if(jobConfiguration.actionType === JobActionType.SyncInventory){
-        await this.inventorySyncService.handleSyncInventoryJob(jobConfiguration)
-      } 
-      if(jobConfiguration.actionType === JobActionType.WebAutomation){
-        await this.webAutomationService.handleWebAutomationJob(jobConfiguration)
-      }
-     
-      this.updateStatus(currentJob.id, JobStatus.Done)
-
-      return `Succesfully ran job with configuration id ${jobConfiguration.id}`
-    }
-    catch (e) {
-      this.updateStatus(currentJob.id, JobStatus.Failed)
-    }
-  }
-
-  async addNewJobAdhoc(jobConfigurationId: number) {
-    console.log(`hello from addNewJobAdhoc: I ran for ${jobConfigurationId}`)
-    const jobConfiguration = await this.jobConfigurationService.findOne(jobConfigurationId)
-   
-    if(jobConfiguration?.id){
-      const newJob = new Job()
-      newJob.status = JobStatus.Queued;
-      newJob.entityReferenceId = jobConfiguration.id;
-      newJob.tenantId = jobConfiguration.tenantId
-      const savedJob = await this.repository.save(newJob)
-      if(savedJob.id){
-       return await this.processJob(savedJob.id)
-      }
-    }
-    
-    return 'could not find a job configuration with the given ID'
-   
-  }
-
-  async addNewJob(entityReferenceId: number, tenantId: number) {
-    const newJob = new Job()
-    newJob.status = JobStatus.Queued;
-    newJob.entityReferenceId = entityReferenceId;
-    newJob.tenantId = tenantId
-    return await this.repository.save(newJob)
   }
 
   async updateStatus(id: number, newStatus: JobStatus) {
@@ -104,30 +30,25 @@ export class JobsService {
   }
 
   async search(searchParams: JobsSearchParams) {
-    let whereCondition : Partial<Job> = {}
-    if(searchParams.entityReferenceId){
-      whereCondition = {...whereCondition, entityReferenceId: searchParams.entityReferenceId}
+    let searchQueryResult = []
+    let whereCondition: Partial<Job> = {}
+    if (searchParams.entityReferenceId) {
+      whereCondition = { ...whereCondition, entityReferenceId: searchParams.entityReferenceId }
     }
-    if(searchParams.status){
-      whereCondition = {...whereCondition, status: searchParams.status}
+    if (searchParams.status) {
+      whereCondition = { ...whereCondition, status: searchParams.status }
     }
-    if(searchParams.tenantId){
-      whereCondition = {...whereCondition, tenantId: searchParams.tenantId}
+    if (searchParams.tenantId) {
+      whereCondition = { ...whereCondition, tenantId: searchParams.tenantId }
     }
-    const response = await this.repository.find({where : whereCondition, order: {updatedAt : 'desc'}})
+    const response = await this.repository.find({ where: whereCondition, order: { updatedAt: 'desc' } })
 
-    return response
-  }
+    for(const job of response){
+      const client = await this.clientsService.findOne(job.tenantId)
+      const jobConfiguration = await this.jobConfigurationsService.findOne(job.entityReferenceId)
+      searchQueryResult.push({...job, client, jobConfiguration})
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} job`;
-  }
-
-  update(id: number, updateJobDto: UpdateJobDto) {
-    return `This action updates a #${id} job`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} job`;
+    return searchQueryResult
   }
 }

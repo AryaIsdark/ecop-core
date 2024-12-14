@@ -2,10 +2,10 @@ import { Module } from '@nestjs/common';
 import { CronJobsService } from './cron-jobs.service';
 import { CronJobsController } from './cron-jobs.controller';
 import { JobConfigurationsModule } from 'src/job-configurations';
-import { JobsModule } from 'src/jobs';
+import { JobProcessorModule } from 'src/job-processor';
 
 @Module({
-  imports: [JobConfigurationsModule, JobsModule],
+  imports: [JobConfigurationsModule, JobProcessorModule],
   controllers: [CronJobsController],
   providers: [CronJobsService],
   exports: [CronJobsService]
