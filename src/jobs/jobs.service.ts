@@ -29,26 +29,66 @@ export class JobsService {
     return syncJob
   }
 
+  async search_deprecated(searchParams: JobsSearchParams) {
+    let whereCondition : Partial<Job> = {}
+    if(searchParams.entityReferenceId){
+      whereCondition = {...whereCondition, entityReferenceId: searchParams.entityReferenceId}
+    }
+    if(searchParams.status){
+      whereCondition = {...whereCondition, status: searchParams.status}
+    }
+    if(searchParams.tenantId){
+      whereCondition = {...whereCondition, tenantId: searchParams.tenantId}
+    }
+    const response = await this.repository.find({where : whereCondition, order: {updatedAt : 'desc'}})
+    return response
+  }
+
+
   async search(searchParams: JobsSearchParams) {
-    let searchQueryResult = []
-    let whereCondition: Partial<Job> = {}
+    let searchQueryResult = [];
+    let whereCondition: Partial<Job> = {};
+  
+    // Build the where condition
     if (searchParams.entityReferenceId) {
-      whereCondition = { ...whereCondition, entityReferenceId: searchParams.entityReferenceId }
+      whereCondition = { ...whereCondition, entityReferenceId: searchParams.entityReferenceId };
     }
     if (searchParams.status) {
-      whereCondition = { ...whereCondition, status: searchParams.status }
+      whereCondition = { ...whereCondition, status: searchParams.status };
     }
     if (searchParams.tenantId) {
-      whereCondition = { ...whereCondition, tenantId: searchParams.tenantId }
+      whereCondition = { ...whereCondition, tenantId: searchParams.tenantId };
     }
-    const response = await this.repository.find({ where: whereCondition, order: { updatedAt: 'desc' } })
-
-    for(const job of response){
-      const client = await this.clientsService.findOne(job.tenantId)
-      const jobConfiguration = await this.jobConfigurationsService.findOne(job.entityReferenceId)
-      searchQueryResult.push({...job, client, jobConfiguration})
+  
+    // Calculate pagination
+    const pageSize = searchParams.pageSize || 20; // Default page size
+    const pageNumber = searchParams.pageNumber || 1; // Default to first page
+    const skip = (pageNumber - 1) * pageSize;
+  
+    // Fetch paginated results
+    const [response, total] = await this.repository.findAndCount({
+      where: whereCondition,
+      order: { updatedAt: 'desc' },
+      take: pageSize,
+      skip,
+    });
+  
+    // Enhance results with additional data
+    for (const job of response) {
+      const client = await this.clientsService.findOne(job.tenantId);
+      const jobConfiguration = await this.jobConfigurationsService.findOne(job.entityReferenceId);
+      searchQueryResult.push({ ...job, client, jobConfiguration });
     }
-
-    return searchQueryResult
+  
+    // Return results and pagination metadata
+    return {
+      data: searchQueryResult,
+      total,
+      pageSize,
+      pageNumber,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
+  
+  
 }

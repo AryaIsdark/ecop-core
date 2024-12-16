@@ -1,8 +1,9 @@
 import { BaseEntity } from 'src/base/base-entity';
-import { Client } from 'src/clients/entities/client.entity';
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 export type JobsSearchParams = {
+  pageSize? : number, 
+  pageNumber? : number,
   tenantId? : number
   entityReferenceId? : number
   status?: JobStatus

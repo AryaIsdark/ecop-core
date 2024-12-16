@@ -60,7 +60,7 @@ export class ClientsService {
      const jobConfigurations =  await this.jobConfigurationsService.query(clientId, { entityType: EntityType.general })
      const mappedJobConfigurations = []
      for (const jobConfiguration of jobConfigurations) {              
-       const jobs = await this.jobsService.search({ entityReferenceId: jobConfiguration.id })
+       const jobs = await this.jobsService.search_deprecated({ entityReferenceId: jobConfiguration.id })
        mappedJobConfigurations.push({ ...jobConfiguration, jobs })
      }
 
@@ -73,7 +73,7 @@ export class ClientsService {
     for (const jobConfiguration of jobConfigurations) {
       const supplierId = jobConfiguration.entityReferenceId
       const supplier = await this.suppliersService.findOne(supplierId)
-      const jobs = await this.jobsService.search({ entityReferenceId: jobConfiguration.id })
+      const jobs = await this.jobsService.search_deprecated({ entityReferenceId: jobConfiguration.id })
       mappedJobConfigurations.push({ ...jobConfiguration, supplier, jobs })
     }
 
@@ -86,7 +86,7 @@ export class ClientsService {
     for (const jobConfiguration of jobConfigurations) {
       const warehouseManagementSystemId = jobConfiguration.entityReferenceId
       const warehouseManagementSystem = await this.warehouseManagementSystemsService.findOne(warehouseManagementSystemId)
-      const jobs = await this.jobsService.search({ entityReferenceId: jobConfiguration.id })
+      const jobs = await this.jobsService.search_deprecated({ entityReferenceId: jobConfiguration.id })
       mappedJobConfigurations.push({ ...jobConfiguration, warehouseManagementSystem, jobs })
     }
 
@@ -99,7 +99,7 @@ export class ClientsService {
     for (const jobConfiguration of jobConfigurations) {
       const ecommercePlatformId = jobConfiguration.entityReferenceId
       const ecommercePlatform = await this.ecommercePlatformService.findOne(ecommercePlatformId)
-      const jobs = await this.jobsService.search({ entityReferenceId: jobConfiguration.id })
+      const jobs = await this.jobsService.search_deprecated({ entityReferenceId: jobConfiguration.id })
       mappedJobConfigurations.push({ ...jobConfiguration, ecommercePlatform, jobs })
     }
 
