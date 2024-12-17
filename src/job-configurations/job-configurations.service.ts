@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { CreateJobConfigurationDto } from './dto/create-job-configuration.dto';
 import { UpdateJobConfigurationDto } from './dto/update-job-configuration.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JobActionType, JobConfiguration } from './entities/job-configuration.entity';
+import { JobActionType, JobConfiguration, JobConfigurationsSearchParams } from './entities/job-configuration.entity';
 import { Repository } from 'typeorm';
+import { ClientsService } from 'src/clients';
+import { JobsService } from '../jobs/jobs.service';
 
 
 @Injectable()
@@ -12,6 +14,10 @@ export class JobConfigurationsService {
     @InjectRepository(JobConfiguration)
     private readonly repository: Repository<JobConfiguration>,
 
+    @Inject(forwardRef(() => ClientsService))
+    private readonly clientsService: ClientsService,
+    @Inject(forwardRef(() => JobsService))
+    private readonly jobsService: JobsService
   ) {
 
   }
@@ -51,35 +57,35 @@ export class JobConfigurationsService {
     }
   }
 
-  async search(clientId: number, actionType: JobActionType) {
+  async search_deprecated(clientId: number, actionType: JobActionType) {
     const result = await this.repository.find({ where: { actionType, tenantId: clientId } })
     return result
   }
 
-  async query(clientId: number, params: Partial<JobConfiguration>){
-    let whereConditions : Partial<JobConfiguration> = {
+  async query(clientId: number, params: Partial<JobConfiguration>) {
+    let whereConditions: Partial<JobConfiguration> = {
       tenantId: clientId
     }
 
-    if(params.entityType){
-      whereConditions = {...whereConditions, entityType: params.entityType}
+    if (params.entityType) {
+      whereConditions = { ...whereConditions, entityType: params.entityType }
     }
 
-    if(params.actionType){
-      whereConditions = {...whereConditions, actionType: params.actionType}
+    if (params.actionType) {
+      whereConditions = { ...whereConditions, actionType: params.actionType }
     }
 
-    const result = await this.repository.find({where: whereConditions})
+    const result = await this.repository.find({ where: whereConditions })
 
     return result
   }
 
-  async getClientJobConfigurations(clientId: number){
+  async getClientJobConfigurations(clientId: number) {
     const result = await this.repository.find({ where: { tenantId: clientId } })
     return result
   }
 
-  async findAll(){
+  async findAll() {
     return await this.repository.find()
 
   }
@@ -93,5 +99,52 @@ export class JobConfigurationsService {
 
   remove(id: number) {
     return `This action removes a #${id} jobConfiguration`;
+  }
+
+
+  async search(searchParams: JobConfigurationsSearchParams) {
+    let searchQueryResult = [];
+    let whereCondition: Partial<JobConfiguration> = {};
+
+    // Build the where condition
+    if (searchParams.entityReferenceId) {
+      whereCondition = { ...whereCondition, entityReferenceId: searchParams.entityReferenceId };
+    }
+    if (searchParams.entityType) {
+      whereCondition = { ...whereCondition, entityType: searchParams.entityType };
+    }
+    if (searchParams.tenantId) {
+      whereCondition = { ...whereCondition, tenantId: searchParams.tenantId };
+    }
+
+    // Calculate pagination
+    const pageSize = searchParams.pageSize || 20; // Default page size
+    const pageNumber = searchParams.pageNumber || 1; // Default to first page
+    const skip = (pageNumber - 1) * pageSize;
+
+    // Fetch paginated results
+    const [response, total] = await this.repository.findAndCount({
+      where: whereCondition,
+      order: { tenantId: 'desc' },
+      take: pageSize,
+      skip,
+    });
+
+    // Enhance results with additional data
+    for (const configuration of response) {
+      const client = await this.clientsService.findOne(configuration.tenantId);
+      const jobs = await this.jobsService.search({entityReferenceId: configuration.id, pageSize: 3})
+      const recent_job_runs = jobs.data
+      searchQueryResult.push({ ...configuration, client, recent_job_runs });
+    }
+
+    // Return results and pagination metadata
+    return {
+      data: searchQueryResult,
+      total,
+      pageSize,
+      pageNumber,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 }

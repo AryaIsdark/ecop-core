@@ -8,7 +8,6 @@ import { JobConfigurationsModule } from 'src/job-configurations';
 @Module({
   imports: [TypeOrmModule.forFeature([Job]),
   forwardRef(() => ClientsModule),
-  forwardRef(() => JobConfigurationsModule),
   ],
   providers: [JobsService],
   exports: [JobsService]

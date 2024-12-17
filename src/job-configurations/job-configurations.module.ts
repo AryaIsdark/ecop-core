@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { JobConfigurationsService } from './job-configurations.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobConfiguration } from './entities/job-configuration.entity';
 import { JobsModule } from 'src/jobs';
-import { SuppliersModule } from 'src/suppliers';
-import { WarehouseManagementSystemsModule } from 'src/warehouse-management-systems';
-import { EcommercePlatformsModule } from 'src/ecommerce-platforms';
+import { ClientsModule } from 'src/clients';
 @Module({
-  imports: [TypeOrmModule.forFeature([JobConfiguration])],
+  imports: [TypeOrmModule.forFeature([JobConfiguration]),
+  forwardRef(() => ClientsModule),
+  forwardRef(() => JobsModule),
+  ],
   providers: [JobConfigurationsService],
   exports: [JobConfigurationsService]
 })

@@ -21,28 +21,39 @@ export enum EntityType {
 
 @Entity()
 export class JobConfiguration {
-  @PrimaryGeneratedColumn() 
+  @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({nullable:true, type: 'varchar' })
+  @Column({ nullable: true, type: 'varchar' })
   actionType: JobActionType;
 
-  @Column({nullable:true, type: 'varchar', length: 50 })
+  @Column({ nullable: true, type: 'varchar', length: 50 })
   syncType: string;
 
   @Column()
   entityType: EntityType
 
-  @Column({nullable:true, type: 'jsonb' })
+  @Column({ nullable: true, type: 'jsonb' })
   config: Record<string, any>;
- 
+
   @Column()
   entityReferenceId: number
- 
-  @Column({nullable: true})
+
+  @Column({ nullable: true })
   tenantId: number
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   cronExpression: string;
 
+}
+
+
+export type JobConfigurationsSearchParams = {
+  pageNumber?: number,
+  pageSize?: number,
+  tenantId?: number,
+  entityReferenceId?: number,
+  actionType?: JobActionType,
+  syncType?: string,
+  entityType?: EntityType
 }

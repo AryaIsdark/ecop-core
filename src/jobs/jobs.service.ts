@@ -14,8 +14,7 @@ export class JobsService {
     private readonly repository: Repository<Job>,
     @Inject(forwardRef(() => ClientsService))
     private readonly clientsService: ClientsService,
-    @Inject(forwardRef(() => JobConfigurationsService))
-    private readonly jobConfigurationsService: JobConfigurationsService,
+   
   ) {
 
   }
@@ -76,8 +75,7 @@ export class JobsService {
     // Enhance results with additional data
     for (const job of response) {
       const client = await this.clientsService.findOne(job.tenantId);
-      const jobConfiguration = await this.jobConfigurationsService.findOne(job.entityReferenceId);
-      searchQueryResult.push({ ...job, client, jobConfiguration });
+      searchQueryResult.push({ ...job, client });
     }
   
     // Return results and pagination metadata
