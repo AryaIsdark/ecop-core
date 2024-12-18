@@ -2,7 +2,7 @@ import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { CreateJobConfigurationDto } from './dto/create-job-configuration.dto';
 import { UpdateJobConfigurationDto } from './dto/update-job-configuration.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { JobActionType, JobConfiguration, JobConfigurationsSearchParams } from './entities/job-configuration.entity';
+import { EntityType, JobActionType, JobConfiguration, JobConfigurationsSearchParams } from './entities/job-configuration.entity';
 import { Repository } from 'typeorm';
 import { ClientsService } from 'src/clients';
 import { JobsService } from '../jobs/jobs.service';
@@ -132,10 +132,21 @@ export class JobConfigurationsService {
 
     // Enhance results with additional data
     for (const configuration of response) {
+      let entity;
       const client = await this.clientsService.findOne(configuration.tenantId);
-      const jobs = await this.jobsService.search({entityReferenceId: configuration.id, pageSize: 3})
+      const jobs = await this.jobsService.search({ entityReferenceId: configuration.id, pageSize: 3 })
       const recent_job_runs = jobs.data
-      searchQueryResult.push({ ...configuration, client, recent_job_runs });
+      const refData = await this.clientsService.getTenantReferenceData(configuration.tenantId)
+      if (configuration.entityType === EntityType.supplier) {
+        entity = refData.tenantSupplierOptions.find((s) => s.id === configuration.entityReferenceId)
+      }
+      if (configuration.entityType === EntityType.ecommercePlatform) {
+        entity = refData.tenantEcommercePlatformOptions.find((e) => e.id === configuration.entityReferenceId)
+      }
+      if (configuration.entityType === EntityType.warehouseManagemenSystem) {
+        entity = refData.tenantWmsOptions.find((w) => w.id === configuration.entityReferenceId)
+      }
+      searchQueryResult.push({ ...configuration, client, recent_job_runs, entity });
     }
 
     // Return results and pagination metadata
