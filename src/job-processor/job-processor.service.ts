@@ -9,6 +9,7 @@ import { InventorySyncService } from 'src/inventory-sync/inventory-sync.service'
 import { WebAutomationsService } from 'src/web-automations/web-automations.service';
 import { PurchaseOrderSyncService } from 'src/purchase-order-sync/purchase-order-sync.service';
 import { Job, JobStatus } from 'src/jobs';
+import { ProductAnalyticsService } from 'src/product-analytics';
 
 @Injectable()
 export class JobProcessorService {
@@ -21,7 +22,8 @@ export class JobProcessorService {
         private readonly purchaseOrderSyncService: PurchaseOrderSyncService,
         private readonly orderSyncService: OrderSyncService,
         private readonly inventorySyncService: InventorySyncService,
-        private readonly webAutomationService: WebAutomationsService
+        private readonly webAutomationService: WebAutomationsService,
+        private readonly productAnalyticsService: ProductAnalyticsService
     ) {
 
     }
@@ -39,6 +41,9 @@ export class JobProcessorService {
         await this.repository.update(currentJob.id, currentJob)
 
         try {
+            if (jobConfiguration.actionType === JobActionType.MarkTrendingProducts) {
+                await this.productAnalyticsService.handleMarkTrendingProducts(jobConfiguration)
+            }
             if (jobConfiguration.actionType === JobActionType.SyncProductImages) {
                 await this.productSyncService.handleSyncProductImagesJob(jobConfiguration)
             }

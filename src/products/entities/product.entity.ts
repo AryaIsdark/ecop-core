@@ -1,6 +1,12 @@
 import { PurchaseOrderLineItem } from 'src/purchase-order-line-items';
 import { Entity, Column, PrimaryGeneratedColumn, Unique, OneToMany } from 'typeorm';
 
+
+export enum ProductTrendingScore {
+  LOW='low',
+  MID='mid',
+  HIGH='high'
+}
 @Entity()
 @Unique(['sku','tenantId'])
 export class Product {
@@ -42,6 +48,14 @@ export class Product {
  
   @Column({ nullable: true })
   main_image_url: string;
+
+  @Column({
+    nullable: true,
+    type: 'enum',
+    enum: ProductTrendingScore, 
+    default: ProductTrendingScore.LOW,
+  })
+  trending_score: ProductTrendingScore;
 
   // @OneToMany(() => PurchaseOrderLineItem, (lineItem) => lineItem.product)
   // purchaseOrderLineItems: Promise<PurchaseOrderLineItem[]>;

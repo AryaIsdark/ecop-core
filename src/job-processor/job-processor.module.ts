@@ -8,6 +8,7 @@ import { PurchaseOrderSyncModule } from 'src/purchase-order-sync/purchase-order-
 import { JobConfigurationsModule } from 'src/job-configurations';
 import { InventorySyncModule } from 'src/inventory-sync/inventory-sync.module';
 import { WebAutomationsModule } from 'src/web-automations/web-automations.module';
+import { ProductAnalyticsModule } from 'src/product-analytics';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Job]),
@@ -16,7 +17,8 @@ import { WebAutomationsModule } from 'src/web-automations/web-automations.module
     PurchaseOrderSyncModule,
     JobConfigurationsModule,
     InventorySyncModule,
-    WebAutomationsModule
+    WebAutomationsModule,
+    ProductAnalyticsModule,
   ],
   providers: [JobProcessorService],
   exports: [JobProcessorService]

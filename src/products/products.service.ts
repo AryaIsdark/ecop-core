@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductsQueryParams } from './entities/product.entity';
@@ -28,8 +28,8 @@ export class ProductsService {
     return 'This action adds a new product';
   }
 
-  async getClientProducts(clientId: number){
-    return await this.repository.find({where : {tenantId: clientId}})
+  async getClientProducts(clientId: number) {
+    return await this.repository.find({ where: { tenantId: clientId } })
   }
 
   async query(
@@ -37,30 +37,30 @@ export class ProductsService {
   ): Promise<Paginate<Product>> {
     const take = params.pageSize;
     const skip = (params.pageNumber - 1) * params.pageSize;
-    let whereConditions : Record<string, any> = {
+    let whereConditions: Record<string, any> = {
 
     }
 
     if (params.tenantId) {
-      whereConditions.tenantId =  params.tenantId 
+      whereConditions.tenantId = params.tenantId
     }
     if (params.supplierId) {
       whereConditions.supplierId = params.supplierId
     }
     if (params.ean) {
-      whereConditions.ean = ILike(`%${params.ean}%`) 
+      whereConditions.ean = ILike(`%${params.ean}%`)
     }
     if (params.ean_normalized) {
-      whereConditions.ean_normalized = ILike(`%${params.ean_normalized}%`) 
+      whereConditions.ean_normalized = ILike(`%${params.ean_normalized}%`)
     }
     if (params.sku) {
-      whereConditions.sku = ILike(`%${params.sku}%`) 
+      whereConditions.sku = ILike(`%${params.sku}%`)
     }
     if (params.brand) {
-      whereConditions.brand = ILike(`%${params.brand}%`) 
+      whereConditions.brand = ILike(`%${params.brand}%`)
     }
     if (params.name) {
-      whereConditions.name = ILike(`%${params.name}%`) 
+      whereConditions.name = ILike(`%${params.name}%`)
     }
 
     const [products, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })
@@ -84,16 +84,27 @@ export class ProductsService {
   }
 
   async findOne(id: number) {
-    
+
     const product = await this.repository.findOne({ where: { id } })
     const inventoryInfo = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
 
-    return {...product, inventoryInfo}
+    return { ...product, inventoryInfo }
+  }
+  async update(id: number, updateProductDto: UpdateProductDto) {
+    // Find the product by ID
+    const product = await this.repository.findOne({ where: { id } });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    // Update the product with new values
+    Object.assign(product, updateProductDto);
+
+    // Save the updated product to the database
+    return await this.repository.save(product);
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
-  }
 
   remove(id: number) {
     return `This action removes a #${id} product`;
@@ -109,7 +120,7 @@ export class ProductsService {
         for (const product of products) {
           if (product) {
             const { id, ...productDataWithoutId } = product; // Exclude 'id' from the product data
-            
+
             await transactionalEntityManager.upsert(
               Product,
               { ...productDataWithoutId, supplierId, tenantId, ean_normalized: normalizeEAN(product.ean) },
@@ -123,7 +134,7 @@ export class ProductsService {
       throw error;
     }
   }
-  
 
-  
+
+
 }

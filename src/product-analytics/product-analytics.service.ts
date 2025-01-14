@@ -3,15 +3,92 @@ import { UpdateProductAnalyticDto } from './dto/update-product-analytic.dto';
 import { ProductAnalytic } from './entities/product-analytic.entity';
 import { LessThan, Repository, MoreThan } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { JobConfiguration } from 'src/job-configurations';
+import { ProductTrendingScore, ProductsService } from 'src/products';
+
+export enum TRENDING_RANGE {
+  SINCE_LAST_WEEK,
+  SINCE_LAST_MONTH
+}
 
 @Injectable()
 export class ProductAnalyticsService {
   constructor(
     @InjectRepository(ProductAnalytic)
     private readonly repository: Repository<ProductAnalytic>,
+    private readonly productsService: ProductsService
   ) {
 
   }
+
+  translateTrendingRange(range: TRENDING_RANGE): Date {
+    const currentDate = new Date();
+
+    if (range === TRENDING_RANGE.SINCE_LAST_WEEK) {
+      currentDate.setDate(currentDate.getDate() - 7);
+      return currentDate;
+    }
+
+    if (range === TRENDING_RANGE.SINCE_LAST_MONTH) {
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      return currentDate;
+    }
+
+    throw new Error(`Unsupported TRENDING_RANGE value: ${range}`);
+  }
+
+  async handleMarkTrendingProducts(jobConfiguration: JobConfiguration): Promise<string> {
+    const { tenantId } = jobConfiguration;
+    
+    const clientProductAnalytics = await this.repository.find({
+      where: {
+        clientId: tenantId,
+        createdAt: MoreThan(this.translateTrendingRange(TRENDING_RANGE.SINCE_LAST_WEEK)),
+      },
+    });
+
+    const productMap = this.aggregateProductCounts(clientProductAnalytics);
+
+    await this.updateTrendingScores(productMap, tenantId);
+
+    return 'Successfully finished marking trending products';
+  }
+
+  private aggregateProductCounts(analytics: Array<{ product_ean: string; count: number }>): Map<string, number> {
+    const productMap = new Map<string, number>();
+
+    for (const { product_ean, count } of analytics) {
+      productMap.set(product_ean, (productMap.get(product_ean) || 0) + count);
+    }
+
+    return productMap;
+  }
+
+  private async updateTrendingScores(productMap: Map<string, number>, tenantId: number): Promise<void> {
+    for (const [product_ean, count] of productMap) {
+      const products = await this.productsService.query({
+        tenantId,
+        ean: product_ean,
+        pageNumber: 1,
+        pageSize: 100,
+      });
+
+      for (const product of products.data) {
+        const trendingScore = this.getTrendingScore(count);
+        if (trendingScore) {
+          await this.productsService.update(product.id, { trending_score: trendingScore });
+        }
+      }
+    }
+  }
+
+  private getTrendingScore(count: number): ProductTrendingScore | null {
+    if (count < 5) return ProductTrendingScore.LOW;
+    if (count >= 5 && count < 10) return ProductTrendingScore.MID;
+    if (count >= 10) return ProductTrendingScore.HIGH;
+    return null;
+  }
+
   async create(createProductAnalyticDto: Partial<ProductAnalytic>) {
     const existing = await this.query({
       orderId: createProductAnalyticDto.orderId,
@@ -48,11 +125,11 @@ export class ProductAnalyticsService {
     return await this.repository.find({ where: whereConditions })
   }
 
- async getOrderQuantityForGivenRange(productEan: string, dateFrom: Date, dateTo: Date) {
+  async getOrderQuantityForGivenRange(productEan: string, dateFrom: Date, dateTo: Date) {
     const results = await this.repository.find({
       where: {
         product_ean: productEan,
-        createdAt:  MoreThan(dateFrom) && LessThan(dateTo),
+        createdAt: MoreThan(dateFrom) && LessThan(dateTo),
       }
     })
 
