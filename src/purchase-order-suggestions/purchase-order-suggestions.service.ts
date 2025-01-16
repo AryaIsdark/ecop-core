@@ -45,7 +45,7 @@ export class PurchaseOrderSuggestionsService {
   }
 
 
-   suggestPurchaseOrderCandidateQuantity(candidate: Inventory) {
+  suggestPurchaseOrderCandidateQuantity(candidate: Inventory) {
     return Math.abs(candidate.sellable_number_of_items)
   }
 
@@ -59,7 +59,10 @@ export class PurchaseOrderSuggestionsService {
       }
       let matchProduct: Product
       const products = await this.productsService.query({ tenantId: clientId, ean_normalized: candidate.product_ean, pageSize: 10, pageNumber: 1 })
-      const filteredProducts = products.data.filter((product) => parseInt(product.stock) > 0)
+      const filteredProducts = products.data.filter((product) => {
+        const stock = Number(product.stock); // Converts to a number or NaN
+        return !isNaN(stock) && stock > 0;  // Include only valid, positive numbers
+      });
 
       if (filteredProducts.length === 1) {
         matchProduct = filteredProducts[0]
