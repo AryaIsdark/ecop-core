@@ -62,6 +62,9 @@ export class ProductsService {
     if (params.name) {
       whereConditions.name = ILike(`%${params.name}%`)
     }
+    if (params.trending_score) {
+      whereConditions.trending_score = params.trending_score
+    }
 
     const [products, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })
     const productsWithInventory = []

@@ -7,8 +7,15 @@ import { JobConfiguration } from 'src/job-configurations';
 import { ProductTrendingScore, ProductsService } from 'src/products';
 
 export enum TRENDING_RANGE {
-  SINCE_LAST_WEEK,
-  SINCE_LAST_MONTH
+  SINCE_LAST_WEEK='since_last_week',
+  SINCE_LAST_MONTH='since_last_month'
+}
+
+export type MarkTrendingProductsJobConfiguration = {
+  trending_range: TRENDING_RANGE,
+  trending_score_low?: number,
+  trending_score_high?: number,
+  trending_score_medium?: number
 }
 
 @Injectable()
@@ -38,18 +45,18 @@ export class ProductAnalyticsService {
   }
 
   async handleMarkTrendingProducts(jobConfiguration: JobConfiguration): Promise<string> {
-    const { tenantId } = jobConfiguration;
-    
+    const { tenantId, config } = jobConfiguration;
+
     const clientProductAnalytics = await this.repository.find({
       where: {
         clientId: tenantId,
-        createdAt: MoreThan(this.translateTrendingRange(TRENDING_RANGE.SINCE_LAST_WEEK)),
+        createdAt: MoreThan(this.translateTrendingRange(config.trending_range)),
       },
     });
 
     const productMap = this.aggregateProductCounts(clientProductAnalytics);
 
-    await this.updateTrendingScores(productMap, tenantId);
+    await this.updateTrendingScores(productMap, tenantId, config as unknown as MarkTrendingProductsJobConfiguration);
 
     return 'Successfully finished marking trending products';
   }
@@ -64,7 +71,7 @@ export class ProductAnalyticsService {
     return productMap;
   }
 
-  private async updateTrendingScores(productMap: Map<string, number>, tenantId: number): Promise<void> {
+  private async updateTrendingScores(productMap: Map<string, number>, tenantId: number, config: MarkTrendingProductsJobConfiguration): Promise<void> {
     for (const [product_ean, count] of productMap) {
       const products = await this.productsService.query({
         tenantId,
@@ -74,7 +81,7 @@ export class ProductAnalyticsService {
       });
 
       for (const product of products.data) {
-        const trendingScore = this.getTrendingScore(count);
+        const trendingScore = this.getTrendingScore(config, count);
         if (trendingScore) {
           await this.productsService.update(product.id, { trending_score: trendingScore });
         }
@@ -82,10 +89,10 @@ export class ProductAnalyticsService {
     }
   }
 
-  private getTrendingScore(count: number): ProductTrendingScore | null {
-    if (count < 5) return ProductTrendingScore.LOW;
-    if (count >= 5 && count < 10) return ProductTrendingScore.MID;
-    if (count >= 10) return ProductTrendingScore.HIGH;
+  private getTrendingScore(config: MarkTrendingProductsJobConfiguration, count: number): ProductTrendingScore | null {
+    if (count < config.trending_score_low) return ProductTrendingScore.LOW;
+    if (count >= config.trending_score_low && count < config.trending_score_medium) return ProductTrendingScore.MID;
+    if (count >= config.trending_score_high) return ProductTrendingScore.HIGH;
     return null;
   }
 

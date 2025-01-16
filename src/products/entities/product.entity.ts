@@ -1,4 +1,3 @@
-import { PurchaseOrderLineItem } from 'src/purchase-order-line-items';
 import { Entity, Column, PrimaryGeneratedColumn, Unique, OneToMany } from 'typeorm';
 
 
@@ -78,4 +77,5 @@ export type ProductsQueryParams = {
   ean?: string;
   ean_normalized? : string;
   brand?: string;
+  trending_score?: string;
 };
