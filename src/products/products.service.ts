@@ -129,7 +129,7 @@ export class ProductsService {
               Product,
               { 
                 ...productDataWithoutId, 
-                expiration_date_normalized: normalizeDate(product.expiration_date) ?? null,
+                expiration_date_normalized: product.expiration_date ? normalizeDate(product.expiration_date) ?? null : null,
                 supplierId, tenantId, ean_normalized: normalizeEAN(product.ean) },
               ['sku', 'tenantId'],
             );
