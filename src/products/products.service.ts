@@ -9,6 +9,7 @@ import { SuppliersService } from 'src/suppliers';
 import { Paginate } from 'src/base/paginate';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 import { ProductMediaService } from 'src/product-media';
+import { normalizeDate } from 'src/utils/normalize-date/normalize-date';
 
 @Injectable()
 export class ProductsService {
@@ -126,7 +127,10 @@ export class ProductsService {
 
             await transactionalEntityManager.upsert(
               Product,
-              { ...productDataWithoutId, supplierId, tenantId, ean_normalized: normalizeEAN(product.ean) },
+              { 
+                ...productDataWithoutId, 
+                expiration_date_normalized: normalizeDate(product.expiration_date) ?? null,
+                supplierId, tenantId, ean_normalized: normalizeEAN(product.ean) },
               ['sku', 'tenantId'],
             );
           }

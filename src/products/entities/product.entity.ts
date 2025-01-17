@@ -56,14 +56,11 @@ export class Product {
   })
   trending_score: ProductTrendingScore;
 
-  // @OneToMany(() => PurchaseOrderLineItem, (lineItem) => lineItem.product)
-  // purchaseOrderLineItems: Promise<PurchaseOrderLineItem[]>;
+  @Column({nullable: true})
+  expiration_date: string;
 
-  // @ManyToOne(() => Supplier, (supplier) => supplier.products)
-  // supplier: Supplier;
-
-  // @ManyToOne(() => Client, (client) => client.clientProducts)
-  // client: Client;
+  @Column({nullable: true})
+  expiration_date_normalized: Date;
 }
 
 
