@@ -103,7 +103,7 @@ export class InventorySyncService {
     return 0
   }
 
-  getProductSupplierStock(product: Product, products: Product[]) {
+  getProductSupplierStock_deprecated(product: Product, products: Product[]) {
     let supplierStock = 0
     const filteredProducts = products.filter((p) => product.ean === p.ean)
     for (const product of filteredProducts) {
@@ -111,6 +111,18 @@ export class InventorySyncService {
     }
 
     return supplierStock
+  }
+
+  getProductSupplierStock(product: Product, products: Product[]) {
+    const filteredProducts = products.filter((p) => product.ean === p.ean);
+    
+    // Use Math.max to find the highest stock among the filtered products
+    const highestSupplierStock = filteredProducts.reduce((maxStock, p) => {
+      const stock = parseInt(p.stock, 10);
+      return Math.max(maxStock, stock);
+    }, 0);
+  
+    return highestSupplierStock;
   }
 
   getProductSupplierStockMap(products: Product[]): Map<string, number> {
