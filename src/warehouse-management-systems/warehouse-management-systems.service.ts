@@ -7,14 +7,15 @@ import { Repository } from 'typeorm';
 import { CreatePurchaseOrderDto } from 'src/purchase-orders';
 import { ClientsService, WarehouseManagementSystemJobConfiguration } from 'src/clients';
 import { WicsWmsConfig, WicsWmsConnectorService } from 'src/wics-wms-connector/wics-wms-connector.service';
-import { OngoingWmsConfig } from 'src/ongoing-wms-connector/ongoing-wms-connector.service';
+import { OngoingWmsConfig, OngoingWmsConnectorService } from 'src/ongoing-wms-connector/ongoing-wms-connector.service';
 
 @Injectable()
 export class WarehouseManagementSystemsService {
   constructor(
     @InjectRepository(WarehouseManagementSystem)
     private readonly repository: Repository<WarehouseManagementSystem>,
-    private readonly wicsConnectorService: WicsWmsConnectorService
+    private readonly wicsConnectorService: WicsWmsConnectorService,
+    private readonly ongoingWmsConnectorService : OngoingWmsConnectorService
   ) {
 
   }
@@ -26,8 +27,7 @@ export class WarehouseManagementSystemsService {
       }
 
       if (correspondingWMS.name === 'ongoing') {
-        // Handle ongoing wms create PO
-        throw NotFoundException
+        return await this.ongoingWmsConnectorService.createPurchaseOrder(config as OngoingWmsConfig, payload)
       }
     }
     catch (e) {
