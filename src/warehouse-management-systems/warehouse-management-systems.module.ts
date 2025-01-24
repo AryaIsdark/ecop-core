@@ -3,9 +3,10 @@ import { WarehouseManagementSystemsService } from './warehouse-management-system
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WarehouseManagementSystem } from './entities';
 import { WicsWmsConnectorModule } from 'src/wics-wms-connector/wics-wms-connector.module';
+import { OngoingWmsConnectorModule } from 'src/ongoing-wms-connector/ongoing-wms-connector.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([WarehouseManagementSystem]), WicsWmsConnectorModule],
+  imports: [TypeOrmModule.forFeature([WarehouseManagementSystem]), WicsWmsConnectorModule, OngoingWmsConnectorModule],
   providers: [WarehouseManagementSystemsService],
   exports: [WarehouseManagementSystemsService]
 })
