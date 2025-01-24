@@ -56,7 +56,7 @@ export class OngoingWmsConnectorService {
 
     try {
       const response = await axios.put(
-        `${config.apiBaseUrl}/purchaseOrders`,
+        `${config.apiBaseUrl}/v1/purchaseOrders`,
         wmsPurchaseOrder,
         { headers: { Authorization: config.authorization } },
       );
