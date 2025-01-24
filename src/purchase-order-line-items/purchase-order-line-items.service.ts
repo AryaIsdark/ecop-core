@@ -4,7 +4,7 @@ import { UpdatePurchaseOrderLineItemDto } from './dto/update-purchase-order-line
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrderLineItem, PurchaseOrderLineItemsQueryParams } from './entities/purchase-order-line-item.entity';
 import { Repository } from 'typeorm';
-import { ProductsService } from 'src/products';
+import { ProductTrendingScore, ProductsService } from 'src/products';
 import { ExportFormat } from 'src/base/export-format';
 import { CsvKeyMapping, exportToCsv } from 'src/utils/export-csv/export-csv';
 import { ExportPurchaseOrderLineItemsParams } from './dto/export-purchase-order-line-items.dto';
@@ -112,6 +112,30 @@ export class PurchaseOrderLineItemsService {
 
 
   async getLineItemsForPurchaseOrder(purchaseOrderId: number): Promise<PurchaseOrderLineItem[]> {
+    const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } });
+    const mappedLineItems = [];
+  
+    for (const lineItem of lineItems) {
+      const product = await this.productsService.findOne(lineItem.productId);
+      mappedLineItems.push({ ...lineItem, product });
+    }
+  
+    // Define the order of ProductTrendingScore for sorting
+    const trendingScoreOrder = {
+      [ProductTrendingScore.HIGH]: 1,
+      [ProductTrendingScore.MID]: 2,
+      [ProductTrendingScore.LOW]: 3,
+    };
+  
+    // Sort by trending_score
+    return mappedLineItems.sort((a, b) => {
+      const scoreA = trendingScoreOrder[a.product.trending_score] || Infinity;
+      const scoreB = trendingScoreOrder[b.product.trending_score] || Infinity;
+      return scoreA - scoreB;
+    });
+  }
+
+  async getLineItemsForPurchaseOrder_deprecated(purchaseOrderId: number): Promise<PurchaseOrderLineItem[]> {
     const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } })
     const mappedLineItems = []
     for (const lineItem of lineItems) {
