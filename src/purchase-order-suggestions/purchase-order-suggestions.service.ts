@@ -2,14 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { UpserPurchaseOrderSuggestionDto } from './dto/create-purchase-order-suggestion.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrderSuggestion } from './entities';
-import { MoreThan, Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { Product, ProductsService } from 'src/products';
 import { OrderLinesService } from 'src/order-lines';
 import { Inventory } from 'src/inventory/entities';
 import { identifyCheapestProducts } from 'src/utils';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
-
+export const hasStock = (value: string) => {
+  const stock = parseInt(value);
+  return !isNaN(stock) && stock > 0;
+}
 @Injectable()
 export class PurchaseOrderSuggestionsService {
   constructor(
@@ -18,6 +21,8 @@ export class PurchaseOrderSuggestionsService {
     private productsService: ProductsService,
     @InjectRepository(Inventory)
     private readonly inventoryRepository: Repository<Inventory>,
+    @InjectRepository(Product)
+    private readonly productRepository: Repository<Product>,
     private orderLinesService: OrderLinesService,
   ) { }
 
@@ -33,15 +38,59 @@ export class PurchaseOrderSuggestionsService {
     return candidates;
   }
 
-  async getCandidate_old(clientId: number) {
-    const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
-      .where('inventory.clientId = :clientId', { clientId })
-      .andWhere(
-        '(inventory.actual_stock < inventory.stock_limit OR (inventory.stock_limit IS NULL AND inventory.actual_stock < 0))'
-      )
-      .getMany();
+  async hasSupplierProductInStock(stockValue: string) {
+    const stock = parseInt(stockValue);
+    return !isNaN(stock) && stock > 0;
+  }
 
-    return candidates;
+  getSupplierStock(stockValue: string) {
+    const stock = parseInt(stockValue);
+    return stock
+  }
+
+  filterAvailableProducts(products: Product[]) {
+    return products.filter((p) => {
+      const supplierStock = this.getSupplierStock(p.stock)
+      if (supplierStock > 0) {
+        return p
+      }
+    })
+  }
+
+  async suggestPurchaseOrders(clientId, supplierId) {
+    const suggestions: UpserPurchaseOrderSuggestionDto[] = []
+    const inventories = await this.inventoryRepository.find({ where: { clientId, actual_stock: LessThan(0) } })
+    const supplierProducts = await this.productRepository.find({ where: { tenantId: clientId } })
+    const availableProducts = this.filterAvailableProducts(supplierProducts);
+
+    for (const inventory of inventories) {
+      const products = availableProducts.filter((p) => p.ean_normalized === inventory.product_ean)
+
+      let matchProduct: Product
+
+      if (products.length == 1) {
+        matchProduct = products[0]
+      }
+
+      if (products.length > 0) {
+        matchProduct = identifyCheapestProducts(products)?.[0] as unknown as Product
+      }
+
+      if (matchProduct?.supplierId === supplierId) {
+        const suggestion: UpserPurchaseOrderSuggestionDto = {
+          id: matchProduct.id,
+          product_ean: matchProduct.ean_normalized,
+          product_sku: matchProduct.sku,
+          quantity: this.suggestPurchaseOrderCandidateQuantity(inventory),
+          clientId: clientId,
+        }
+
+        suggestions.push(suggestion)
+      }
+
+    }
+
+    return suggestions
   }
 
 
@@ -49,7 +98,7 @@ export class PurchaseOrderSuggestionsService {
     return Math.abs(candidate.sellable_number_of_items)
   }
 
-  async suggestPurchaseOrders(clientId, supplierId): Promise<UpserPurchaseOrderSuggestionDto[]> {
+  async suggestPurchaseOrders_dep(clientId, supplierId): Promise<UpserPurchaseOrderSuggestionDto[]> {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
     const candidates = await this.getCandidates(clientId)
 
