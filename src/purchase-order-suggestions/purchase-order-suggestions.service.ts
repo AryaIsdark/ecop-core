@@ -43,7 +43,7 @@ export class PurchaseOrderSuggestionsService {
       .where('inventory.clientId = :clientId', { clientId })
       .andWhere(
         `CASE 
-          WHEN inventory.stock_limit IS NOT NULL THEN inventory.actual_stock < inventory.stock_limit
+          WHEN inventory.stock_limit IS NOT NULL THEN inventory.actual_stock < inventory.stock_limit AND inventory.actual_stock < 0
           ELSE inventory.actual_stock < 0 
         END`
       )
