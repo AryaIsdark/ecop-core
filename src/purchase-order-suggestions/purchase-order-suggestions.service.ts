@@ -26,7 +26,6 @@ export class PurchaseOrderSuggestionsService {
     private orderLinesService: OrderLinesService,
   ) { }
 
-
   async getCandidates(clientId: number) {
     const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
       .where('inventory.clientId = :clientId', { clientId })
@@ -37,6 +36,22 @@ export class PurchaseOrderSuggestionsService {
 
     return candidates;
   }
+
+
+  async getCandidatesConsideringStockLimit(clientId: number) {
+    const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
+      .where('inventory.clientId = :clientId', { clientId })
+      .andWhere(
+        `CASE 
+          WHEN inventory.stock_limit IS NOT NULL THEN inventory.actual_stock < inventory.stock_limit
+          ELSE inventory.actual_stock < 0 
+        END`
+      )
+      .getMany();
+
+    return candidates;
+  }
+
 
   async hasSupplierProductInStock(stockValue: string) {
     const stock = parseInt(stockValue);
@@ -100,7 +115,7 @@ export class PurchaseOrderSuggestionsService {
 
   async suggestPurchaseOrders_dep(clientId, supplierId): Promise<UpserPurchaseOrderSuggestionDto[]> {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
-    const candidates = await this.getCandidates(clientId)
+    const candidates = await this.getCandidatesConsideringStockLimit(clientId)
 
     for (const candidate of candidates) {
       if (candidate.product_ean === '0733739047045') {

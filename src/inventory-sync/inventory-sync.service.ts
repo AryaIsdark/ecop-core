@@ -49,6 +49,7 @@ export class InventorySyncService {
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
       inventory.actual_stock = article.inventoryInfo.sellableNumberOfItems + article.inventoryInfo.toReceiveNumberOfItems
+      inventory.stock_limit = article.stockLimit = 1 ? 0 : article.stock_limit // this is temporary
 
       inventories.push(inventory)
     }
@@ -60,9 +61,6 @@ export class InventorySyncService {
     const wicsStocks = await this.wicsWmsConnectorService.getArticlesInventory(config)
     const inventories: Partial<Inventory>[] = []
     for (const item of wicsStocks) {
-      if(item.itemCode === '0087614018522'){
-        console.log('hello', item)
-      }
       const inventory = new Inventory()
       inventory.clientId = clientId;
       inventory.article_number = item.itemCode;
@@ -115,13 +113,11 @@ export class InventorySyncService {
 
   getProductSupplierStock(product: Product, products: Product[]) {
     const filteredProducts = products.filter((p) => product.ean === p.ean);
-    
     // Use Math.max to find the highest stock among the filtered products
     const highestSupplierStock = filteredProducts.reduce((maxStock, p) => {
       const stock = parseInt(p.stock, 10);
       return Math.max(maxStock, stock);
     }, 0);
-  
     return highestSupplierStock;
   }
 

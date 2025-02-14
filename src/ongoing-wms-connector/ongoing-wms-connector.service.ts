@@ -13,6 +13,24 @@ export interface OngoingWmsConfig {
 @Injectable()
 export class OngoingWmsConnectorService {
 
+  async updateArticleStockLimit(config: OngoingWmsConfig, articleNumber: string, newStockLimit: number) {
+    // This function currently doesn't update stocklimit in ongoing, need to investiage why. 
+    // However on the long run we should elimnate using the stock_limit values from the WMS and rely on our system only
+    try {
+      const apiUrl = `${config.apiBaseUrl}/v1/articles`
+      const payload = {
+        articleNumber,
+        goodsOwnerId: config.goodsOwnerId,
+        defaultLocation: { stockLimit: newStockLimit }
+      }
+
+      return await axios.put(apiUrl, payload, { headers: { Authorization: config.authorization } })
+    }
+    catch (e) {
+      throw e
+    }
+  }
+
   async getArticlesWithInventoryInfo(config: OngoingWmsConfig) {
     const articles = await this.getArticles(config)
     const articleInventories = await this.getArticlesInventory(config)

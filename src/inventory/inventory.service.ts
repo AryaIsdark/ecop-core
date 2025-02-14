@@ -3,12 +3,16 @@ import { Inventory, InventoryQueryParams } from './entities';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, ILike, LessThan, MoreThan, Repository } from 'typeorm';
 import { Paginate } from 'src/base/paginate';
+import { ClientsService } from 'src/clients';
+import { OngoingWmsConfig, OngoingWmsConnectorService } from 'src/ongoing-wms-connector/ongoing-wms-connector.service';
 
 @Injectable()
 export class InventoryService {
   constructor(
     @InjectRepository(Inventory)
     private readonly repository: Repository<Inventory>,
+    private readonly clientService: ClientsService,
+    private readonly ongoingConnectorService: OngoingWmsConnectorService,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
   ) {
@@ -26,15 +30,34 @@ export class InventoryService {
     return await this.repository.find({ where: { clientId } })
   }
 
-  async updateStockLimit(id: number, newStockLimit: number){
-    const inventory = await this.repository.findOne({where: {id}})
-    if(!inventory){
-      return 'inventory item not found'
+  async updateStockLimit(id: number, newStockLimit: number) {
+    try {
+      const inventory = await this.repository.findOne({ where: { id } })
+      if (!inventory) {
+        return 'inventory item not found'
+      }
+
+      const clientWmsConfigs = await this.clientService.getWarehouseManagementSystemJobConfigurations(inventory.clientId)
+      const clientWms = clientWmsConfigs[0]
+      let response;
+      if (clientWms.warehouseManagementSystem.name === 'ongoing') {
+        response = await this.ongoingConnectorService
+          .updateArticleStockLimit(clientWms.config as OngoingWmsConfig, inventory.article_number, newStockLimit)
+      }
+
+      if (response) {
+        inventory.stock_limit = newStockLimit
+
+        return await this.repository.save(inventory)
+      }
+    }
+    catch (e) {
+      return {
+        message: 'Could not save new stock limit',
+        error: JSON.stringify(e)
+      }
     }
 
-    inventory.stock_limit = newStockLimit
-
-    return await this.repository.save(inventory)
   }
 
   async query(
