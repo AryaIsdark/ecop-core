@@ -40,6 +40,7 @@ export class InventorySyncService {
     const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
     const inventories: Partial<Inventory>[] = []
     for (const article of articles) {
+      const newStockLimit = article.stockLimit === 1 ? 0 : article.stockLimit // this is temporary
       const inventory = new Inventory()
       inventory.clientId = clientId;
       inventory.article_number = article.articleNumber;
@@ -49,7 +50,8 @@ export class InventorySyncService {
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
       inventory.actual_stock = article.inventoryInfo.sellableNumberOfItems + article.inventoryInfo.toReceiveNumberOfItems
-      inventory.stock_limit = article.stockLimit === 1 ? 0 : article.stockLimit // this is temporary
+      inventory.adjustment_point = article.
+        inventory.stock_limit = newStockLimit // this is temporary
 
       inventories.push(inventory)
     }
