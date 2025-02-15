@@ -50,7 +50,7 @@ export class InventorySyncService {
       inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems || 0
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
-      inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items - inventory.number_of_book_items
+      inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
       inventory.stock_limit = newStockLimit // this is temporary
 
       inventories.push(inventory)
