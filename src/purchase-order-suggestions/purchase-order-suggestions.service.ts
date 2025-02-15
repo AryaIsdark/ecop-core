@@ -2,56 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { UpserPurchaseOrderSuggestionDto } from './dto/create-purchase-order-suggestion.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrderSuggestion } from './entities';
-import { LessThan, Repository } from 'typeorm';
+import { Brackets, LessThan, Repository } from 'typeorm';
 import { Product, ProductsService } from 'src/products';
 import { OrderLinesService } from 'src/order-lines';
 import { Inventory } from 'src/inventory/entities';
 import { identifyCheapestProducts } from 'src/utils';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
-export const hasStock = (value: string) => {
-  const stock = parseInt(value);
-  return !isNaN(stock) && stock > 0;
-}
 @Injectable()
 export class PurchaseOrderSuggestionsService {
   constructor(
     @InjectRepository(PurchaseOrderSuggestion)
     private readonly repository: Repository<PurchaseOrderSuggestion>,
-    private productsService: ProductsService,
     @InjectRepository(Inventory)
     private readonly inventoryRepository: Repository<Inventory>,
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
-    private orderLinesService: OrderLinesService,
   ) { }
-
-  async getCandidates(clientId: number) {
-    const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
-      .where('inventory.clientId = :clientId', { clientId })
-      .andWhere(
-        'inventory.actual_stock < 0'
-      )
-      .getMany();
-
-    return candidates;
-  }
-
-
-  async getCandidatesConsideringStockLimit(clientId: number) {
-    const candidates = await this.inventoryRepository.createQueryBuilder('inventory')
-      .where('inventory.clientId = :clientId', { clientId })
-      .andWhere(
-        `CASE 
-          WHEN inventory.stock_limit IS NOT NULL THEN inventory.actual_stock < inventory.stock_limit
-          ELSE inventory.actual_stock < 0 
-        END`
-      )
-      .getMany();
-
-    return candidates;
-  }
-
 
   async hasSupplierProductInStock(stockValue: string) {
     const stock = parseInt(stockValue);
@@ -74,7 +41,7 @@ export class PurchaseOrderSuggestionsService {
 
   async suggestPurchaseOrders(clientId, supplierId) {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = []
-    const inventories = await this.getCandidatesConsideringStockLimit(clientId)
+    const inventories = await this.inventoryRepository.find({ where: { clientId, actual_stock: LessThan(0) } })
     const supplierProducts = await this.productRepository.find({ where: { tenantId: clientId } })
     const availableProducts = this.filterAvailableProducts(supplierProducts);
 
@@ -109,45 +76,15 @@ export class PurchaseOrderSuggestionsService {
   }
 
 
-  suggestPurchaseOrderCandidateQuantity(candidate: Inventory) {
-    return Math.abs(candidate.sellable_number_of_items)
+  suggestQuantityBasedOnStockLimit(inventory: Inventory) {
+    return Math.max(inventory.stock_limit - inventory.actual_stock);
   }
 
-  async suggestPurchaseOrders_dep(clientId, supplierId): Promise<UpserPurchaseOrderSuggestionDto[]> {
-    const suggestions: UpserPurchaseOrderSuggestionDto[] = [];
-    const candidates = await this.getCandidatesConsideringStockLimit(clientId)
-
-    for (const candidate of candidates) {
-      if (candidate.product_ean === '0733739047045') {
-        console.log('')
-      }
-      let matchProduct: Product
-      const products = await this.productsService.query({ tenantId: clientId, ean_normalized: candidate.product_ean, pageSize: 10, pageNumber: 1 })
-      const filteredProducts = products.data.filter((product) => {
-        const stock = Number(product.stock); // Converts to a number or NaN
-        return !isNaN(stock) && stock > 0;  // Include only valid, positive numbers
-      });
-
-      if (filteredProducts.length === 1) {
-        matchProduct = filteredProducts[0]
-      }
-      if (filteredProducts.length > 1) {
-        matchProduct = identifyCheapestProducts(products.data)?.[0] as unknown as Product
-      }
-
-      if (matchProduct?.supplierId === supplierId) {
-        const suggestion: UpserPurchaseOrderSuggestionDto = {
-          id: matchProduct.id,
-          product_ean: normalizeEAN(matchProduct.ean),
-          product_sku: matchProduct.sku,
-          quantity: this.suggestPurchaseOrderCandidateQuantity(candidate),
-          clientId: clientId,
-        };
-
-        suggestions.push(suggestion);
-      }
+  suggestPurchaseOrderCandidateQuantity(inventory: Inventory) {
+    if (inventory.stock_limit > 0) {
+      return this.suggestQuantityBasedOnStockLimit(inventory)
     }
-    return suggestions
+    return Math.abs(inventory.actual_stock)
   }
 
   async upsert(params: Partial<UpserPurchaseOrderSuggestionDto>) {
