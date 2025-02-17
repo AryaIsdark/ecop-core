@@ -99,7 +99,7 @@ export class PurchaseOrdersService {
 
   async publish(id: number, publishDto: CreatePurchaseOrderDto) {
     const purchaseOrder = await this.repository.findOne({ where: { id } })
-    const supplier = await this.suppliersService.findOne(purchaseOrder.id)
+    const supplier = await this.suppliersService.findOne(purchaseOrder.supplierId)
     const PurchaseOrderLineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(purchaseOrder.id)
     const payload: CreatePurchaseOrderDto = {
       ...publishDto,
