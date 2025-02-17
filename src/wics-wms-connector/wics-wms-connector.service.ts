@@ -61,7 +61,7 @@ export class WicsWmsConnectorService {
         headers: { Authorization: config.authorization },
       });
 
-      if (response.data) {
+      if (response.data.data) {
         isHealthy = true
       }
     }
@@ -119,15 +119,14 @@ export class WicsWmsConnectorService {
     let hasMoreData = true;
     const requestsWithErrors: { url: string; error: any }[] = [];
 
+    const isHealthy = await this.healthCheck(config)
+    if (!isHealthy) {
+      throw new Error('WICS WMS API is currently not healthy.');
+    }
+
     while (hasMoreData) {
       const apiUrl = `${config.apiBaseUrl}/stock?pageSize=${pageSize}&page=${page}`;
-
       try {
-        const isHealthy = await this.healthCheck(config)
-        if (!isHealthy) {
-          throw new Error('WICS WMS API is currently not healthy.');
-        }
-
         const response = await axios.get(apiUrl, {
           headers: { Authorization: config.authorization },
         });
