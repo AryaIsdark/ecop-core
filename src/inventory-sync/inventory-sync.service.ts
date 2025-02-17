@@ -51,7 +51,7 @@ export class InventorySyncService {
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
       inventory.stock_limit = newStockLimit // this is temporary
-      inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items - inventory.stock_limit
+      inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
 
       inventories.push(inventory)
     }
