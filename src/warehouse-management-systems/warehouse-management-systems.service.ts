@@ -28,7 +28,7 @@ export class WarehouseManagementSystemsService {
       }
 
       if (correspondingWMS.name === 'ongoing') {
-        return await this.ongoingWmsConnectorService.createPurchaseOrder(config as OngoingWmsConfig, payload, supplier),
+        return await this.ongoingWmsConnectorService.createPurchaseOrder(config as OngoingWmsConfig, payload, supplier)
       }
     }
     catch (e) {
