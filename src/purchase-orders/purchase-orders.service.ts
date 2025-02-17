@@ -24,14 +24,14 @@ export class PurchaseOrdersService {
     private readonly purchaseOrderLineItemsService: PurchaseOrderLineItemsService,
     private readonly purchaseOrderSuggestionService: PurchaseOrderSuggestionsService,
     private readonly inventoryService: InventoryService,
-    private readonly wmsService : WarehouseManagementSystemsService,
+    private readonly wmsService: WarehouseManagementSystemsService,
     @Inject(forwardRef(() => ClientsService))
     private readonly clientsService: ClientsService,
   ) {
 
   }
 
-  async suggestLineItemsForPurchaseOrder(purchaseOrderId) : Promise<Product[]> {
+  async suggestLineItemsForPurchaseOrder(purchaseOrderId): Promise<Product[]> {
     const suggestions = []
     // Get purchase order by ID
     const purchaseOrder = await this.findOne(purchaseOrderId);
@@ -57,23 +57,23 @@ export class PurchaseOrdersService {
     return suggestions
   }
 
-  async generateLineItemsFromSuggestion(purchaseOrderId){
+  async generateLineItemsFromSuggestion(purchaseOrderId) {
     const purchaseOrder = await this.findOne(purchaseOrderId);
     const suggestions = await this.purchaseOrderSuggestionService.suggestPurchaseOrders(purchaseOrder.clientId, purchaseOrder.supplierId)
 
     // const suggestions = await this.suggestLineItemsForPurchaseOrder(purchaseOrderId)
     // const purchaseOrder = await this.findOne(purchaseOrderId);
-    if(suggestions.length){
-      for(const suggestion of suggestions){
+    if (suggestions.length) {
+      for (const suggestion of suggestions) {
         await this.purchaseOrderLineItemsService.create({
-            clientId: purchaseOrder.clientId,
-            purchaseOrderId: purchaseOrder.id,
-            productId: suggestion.id,
-            quantity: suggestion.quantity,
-            supplierId: purchaseOrder.supplierId,
-            product_ean: suggestion.product_ean,
-            product_sku: suggestion.product_sku
-          })
+          clientId: purchaseOrder.clientId,
+          purchaseOrderId: purchaseOrder.id,
+          productId: suggestion.id,
+          quantity: suggestion.quantity,
+          supplierId: purchaseOrder.supplierId,
+          product_ean: suggestion.product_ean,
+          product_sku: suggestion.product_sku
+        })
       }
     }
   }
@@ -92,26 +92,27 @@ export class PurchaseOrdersService {
       return newPurchaseOrder;
     }
 
-    return  null;
+    return null;
   }
 
 
 
   async publish(id: number, publishDto: CreatePurchaseOrderDto) {
     const purchaseOrder = await this.repository.findOne({ where: { id } })
+    const supplier = await this.suppliersService.findOne(purchaseOrder.id)
     const PurchaseOrderLineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(purchaseOrder.id)
     const payload: CreatePurchaseOrderDto = {
       ...publishDto,
       lineItems: PurchaseOrderLineItems,
     }
-    const jobConfiguration : WarehouseManagementSystemJobConfiguration[] = await this.clientsService.getWarehouseManagementSystemJobConfigurations(purchaseOrder.clientId)
+    const jobConfiguration: WarehouseManagementSystemJobConfiguration[] = await this.clientsService.getWarehouseManagementSystemJobConfigurations(purchaseOrder.clientId)
     const correspondingWMS = jobConfiguration[0].warehouseManagementSystem
     const config = jobConfiguration[0].config
 
     try {
-      const response = await this.wmsService.publishPurchaseOrder(correspondingWMS, config as unknown as any, payload)
+      const response = await this.wmsService.publishPurchaseOrder(correspondingWMS, config as unknown as any, payload, supplier)
       if (response) {
-        return await this.update(purchaseOrder.id, { status: PurchaseOrderStatus.Published, reference: payload.reference  })
+        return await this.update(purchaseOrder.id, { status: PurchaseOrderStatus.Published, reference: payload.reference })
       }
     }
     catch (e) {
@@ -131,26 +132,26 @@ export class PurchaseOrdersService {
 
 
   async findAll() {
-    const purchaseOrders = await this.repository.find({order: {createdAt: 'DESC'}});
+    const purchaseOrders = await this.repository.find({ order: { createdAt: 'DESC' } });
     const mappedPurchaseOrders = []
-    for(const purchaseOrder of purchaseOrders){
+    for (const purchaseOrder of purchaseOrders) {
       const supplier = await this.suppliersService.findOne(purchaseOrder.supplierId)
-      mappedPurchaseOrders.push({...purchaseOrder, supplier})
+      mappedPurchaseOrders.push({ ...purchaseOrder, supplier })
     }
 
     return mappedPurchaseOrders
   }
 
-  async getClientPurchaseOrders(clientId: number){  
-    return await this.repository.find({where: {clientId}})
+  async getClientPurchaseOrders(clientId: number) {
+    return await this.repository.find({ where: { clientId } })
   }
 
   async getTotalPrice(id: number) {
     const lineItems = await this.purchaseOrderLineItemsService.getLineItemsForPurchaseOrder(id)
     let purchaseOrderTotalPrice = 0
     if (lineItems.length) {
-      for (const lineItem  of lineItems) {
-        const product = await this.productRepository.findOne({where: {id: lineItem.productId }})
+      for (const lineItem of lineItems) {
+        const product = await this.productRepository.findOne({ where: { id: lineItem.productId } })
         const lineItemTotalPrice = Number(product.price) * lineItem.quantity
         purchaseOrderTotalPrice = purchaseOrderTotalPrice + lineItemTotalPrice
       }
@@ -178,28 +179,28 @@ export class PurchaseOrdersService {
     return { ...purchaseOrder, supplier, overview }
   }
 
-  async query(params: PurchaseOrderQueryParams){
-    let whereConditions : Partial<PurchaseOrderQueryParams> = {}
-    if(params.status){
+  async query(params: PurchaseOrderQueryParams) {
+    let whereConditions: Partial<PurchaseOrderQueryParams> = {}
+    if (params.status) {
       whereConditions = {
         ...whereConditions, status: params.status
       }
     }
 
-    if(params.clientId){
+    if (params.clientId) {
       whereConditions = {
         ...whereConditions,
         clientId: params.clientId
       }
     }
 
-   
-    const purchaseOrders = await this.repository.find({where: whereConditions, order: {createdAt: 'DESC'}})
+
+    const purchaseOrders = await this.repository.find({ where: whereConditions, order: { createdAt: 'DESC' } })
 
     const mappedPurchaseOrders = []
-    for(const purchaseOrder of purchaseOrders){
+    for (const purchaseOrder of purchaseOrders) {
       const supplier = await this.suppliersService.findOne(purchaseOrder.supplierId)
-      mappedPurchaseOrders.push({...purchaseOrder, supplier})
+      mappedPurchaseOrders.push({ ...purchaseOrder, supplier })
     }
 
     return mappedPurchaseOrders

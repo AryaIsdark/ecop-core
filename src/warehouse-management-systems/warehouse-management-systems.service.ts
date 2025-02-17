@@ -8,6 +8,7 @@ import { CreatePurchaseOrderDto } from 'src/purchase-orders';
 import { ClientsService, WarehouseManagementSystemJobConfiguration } from 'src/clients';
 import { WicsWmsConfig, WicsWmsConnectorService } from 'src/wics-wms-connector/wics-wms-connector.service';
 import { OngoingWmsConfig, OngoingWmsConnectorService } from 'src/ongoing-wms-connector/ongoing-wms-connector.service';
+import { Supplier } from 'src/suppliers';
 
 @Injectable()
 export class WarehouseManagementSystemsService {
@@ -15,19 +16,19 @@ export class WarehouseManagementSystemsService {
     @InjectRepository(WarehouseManagementSystem)
     private readonly repository: Repository<WarehouseManagementSystem>,
     private readonly wicsConnectorService: WicsWmsConnectorService,
-    private readonly ongoingWmsConnectorService : OngoingWmsConnectorService
+    private readonly ongoingWmsConnectorService: OngoingWmsConnectorService
   ) {
 
   }
 
-  async publishPurchaseOrder(correspondingWMS: WarehouseManagementSystem, config: WicsWmsConfig | OngoingWmsConfig, payload: CreatePurchaseOrderDto) {
+  async publishPurchaseOrder(correspondingWMS: WarehouseManagementSystem, config: WicsWmsConfig | OngoingWmsConfig, payload: CreatePurchaseOrderDto, supplier?: Supplier) {
     try {
       if (correspondingWMS.name === 'wics') {
         return await this.wicsConnectorService.createPurchaseOrder(config, payload)
       }
 
       if (correspondingWMS.name === 'ongoing') {
-        return await this.ongoingWmsConnectorService.createPurchaseOrder(config as OngoingWmsConfig, payload)
+        return await this.ongoingWmsConnectorService.createPurchaseOrder(config as OngoingWmsConfig, payload, supplier),
       }
     }
     catch (e) {

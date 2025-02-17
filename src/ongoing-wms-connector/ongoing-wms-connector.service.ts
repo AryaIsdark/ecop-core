@@ -3,6 +3,7 @@ import { CreateOngoingWmsConnectorDto } from './dto/create-ongoing-wms-connector
 import { UpdateOngoingWmsConnectorDto } from './dto/update-ongoing-wms-connector.dto';
 import axios from 'axios';
 import { CreatePurchaseOrderDto } from 'src/purchase-orders';
+import { Supplier } from 'src/suppliers';
 
 export interface OngoingWmsConfig {
   apiBaseUrl: string,
@@ -43,7 +44,7 @@ export class OngoingWmsConnectorService {
     return articlesWithInventoryInfo
   }
 
-  async createPurchaseOrder(config: OngoingWmsConfig, params: CreatePurchaseOrderDto) {
+  async createPurchaseOrder(config: OngoingWmsConfig, params: CreatePurchaseOrderDto, supplier: Supplier) {
 
     const lines = params.lineItems.map((lineItem) => ({
       rowNumber: lineItem.productId,
@@ -55,9 +56,9 @@ export class OngoingWmsConnectorService {
       goodsOwnerId: config.goodsOwnerId,
       purchaseOrderNumber: params.reference,
       supplierInfo: {
-        supplierName: '',
+        supplierName: supplier.name,
         supplierAddress: {
-          name: ' ',
+          name: supplier.name,
           address: ' ',
           postCode: ' ',
           city: ' ',
