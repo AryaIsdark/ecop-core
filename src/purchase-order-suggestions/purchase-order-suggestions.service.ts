@@ -76,14 +76,11 @@ export class PurchaseOrderSuggestionsService {
   }
 
 
-  suggestQuantityBasedOnStockLimit(inventory: Inventory) {
-    return Math.max(inventory.stock_limit - inventory.actual_stock);
-  }
+  // suggestQuantityBasedOnStockLimit(inventory: Inventory) {
+  //   return Math.max(inventory.stock_limit - inventory.actual_stock);
+  // }
 
   suggestPurchaseOrderCandidateQuantity(inventory: Inventory) {
-    if (inventory.stock_limit > 0) {
-      return this.suggestQuantityBasedOnStockLimit(inventory)
-    }
     return Math.abs(inventory.actual_stock)
   }
 
