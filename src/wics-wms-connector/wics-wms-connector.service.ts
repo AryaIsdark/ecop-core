@@ -53,6 +53,25 @@ export class WicsWmsConnectorService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  async healthCheck(config: WicsWmsConfig) {
+    let isHealthy = false;
+    const apiUrl = `${config.apiBaseUrl}/stock`;
+    try {
+      const response = await axios.get(apiUrl, {
+        headers: { Authorization: config.authorization },
+      });
+
+      if (response.data) {
+        isHealthy = true
+      }
+    }
+    catch (e) {
+      console.error('WICS WMS is not currently healthy.')
+    }
+
+    return isHealthy
+  }
+
   async createPurchaseOrder(config: WicsWmsConfig, params: CreatePurchaseOrderDto) {
     const apiUrl = `${config.apiBaseUrl}/announcement`
 
@@ -70,7 +89,7 @@ export class WicsWmsConnectorService {
       supplier: 0,
       lines
     }
-    
+
 
     try {
       return await axios.post(apiUrl, payload, { headers: { Authorization: config.authorization } })
@@ -99,51 +118,55 @@ export class WicsWmsConnectorService {
     let allResults: WicsStock[] = [];
     let hasMoreData = true;
     const requestsWithErrors: { url: string; error: any }[] = [];
-  
+
     while (hasMoreData) {
       const apiUrl = `${config.apiBaseUrl}/stock?pageSize=${pageSize}&page=${page}`;
-  
+
       try {
+        const isHealthy = await this.healthCheck(config)
+        if (!isHealthy) {
+          throw new Error('WICS WMS API is currently not healthy.');
+        }
+
         const response = await axios.get(apiUrl, {
           headers: { Authorization: config.authorization },
         });
-  
+
         const results = response.data?.data || [];
-  
+
         if (results.length > 0) {
           allResults = allResults.concat(results);
           page++;
         }
-  
+
         if (results.length < pageSize) {
           hasMoreData = false;
         }
-  
-        // Introduce a delay to mitigate potential rate-limiting issues
-        await this.delay(500);
-  
+
+        await this.delay(2000);
+
       } catch (error) {
         const errorCode = error?.response?.data?.code;
-  
+
         requestsWithErrors.push({ url: apiUrl, error: error?.response?.data });
         console.error('Error in getArticlesInventory:', {
           url: apiUrl,
           error: error?.response?.data,
         });
-  
+
         if (errorCode === 429) {
           throw new Error('Rate limit exceeded. Please try again later.');
         }
       }
     }
-  
+
     if (requestsWithErrors.length > 0) {
       console.warn('Completed with errors:', requestsWithErrors);
     }
-  
+
     return allResults;
   }
-  
+
 
 
   create(createWicsWmsConnectorDto: CreateWicsWmsConnectorDto) {
