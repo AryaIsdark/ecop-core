@@ -2,7 +2,7 @@ import { BaseEntity } from 'src/base/base-entity';
 import { Entity, Column, Unique } from 'typeorm';
 
 @Entity()
-@Unique(['product_ean','clientId'])
+@Unique(['product_ean', 'clientId'])
 export class Inventory extends BaseEntity {
 
   @Column()
@@ -31,7 +31,7 @@ export class Inventory extends BaseEntity {
 
   @Column({ nullable: true })
   stock_limit: number;
-  
+
   @Column({ nullable: true })
   actual_stock: number;
 
@@ -40,14 +40,17 @@ export class Inventory extends BaseEntity {
 
   @Column({ nullable: true })
   clientId: number;
+
+  @Column({ nullable: true })
+  stock_need: number;
 }
 
 export type InventoryQueryParams = {
-  pageNumber: number, 
+  pageNumber: number,
   pageSize: number,
   sellable_number_of_items_less_than?: number
   sellable_number_of_items_more_than?: number
-  clientId? : number
+  clientId?: number
   product_ean?: string
   product_sku?: string
 }

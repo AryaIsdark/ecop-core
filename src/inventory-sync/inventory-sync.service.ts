@@ -52,6 +52,7 @@ export class InventorySyncService {
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
       inventory.stock_limit = newStockLimit // this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
+      inventory.stock_need = Math.max(0, inventory.stock_limit - (inventory.number_of_items + inventory.to_receive_number_of_items))
 
       inventories.push(inventory)
     }
