@@ -26,6 +26,34 @@ export class JobConfigurationsService {
   }
 
   async upsert(createJobConfigurationDto: CreateJobConfigurationDto) {
+    const { id, tenantId, entityReferenceId, config, syncType, entityType, actionType, cronExpression } = createJobConfigurationDto;
+    try {
+      let jobConfiguration;
+
+      if (id) {
+        jobConfiguration = await this.repository.findOne({ where: { id } });
+      }
+
+      if (!jobConfiguration) {
+        jobConfiguration = new JobConfiguration();
+        jobConfiguration.tenantId = tenantId;
+        jobConfiguration.entityReferenceId = entityReferenceId;
+      }
+
+      jobConfiguration.syncType = syncType;
+      jobConfiguration.config = JSON.parse(config.toString());
+      jobConfiguration.entityType = entityType;
+      jobConfiguration.actionType = actionType;
+      jobConfiguration.cronExpression = cronExpression;
+
+      await this.repository.save(jobConfiguration);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+
+  async upsert_deprecated(createJobConfigurationDto: CreateJobConfigurationDto) {
     const { tenantId, entityReferenceId, config, syncType, entityType, actionType, cronExpression } = createJobConfigurationDto
     try {
       if (tenantId) {

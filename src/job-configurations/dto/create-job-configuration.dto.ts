@@ -1,6 +1,7 @@
 import { EntityType, JobActionType } from "../entities/job-configuration.entity"
 
 export class CreateJobConfigurationDto {
+    id: number
     tenantId: number
     actionType: JobActionType
     entityType: EntityType

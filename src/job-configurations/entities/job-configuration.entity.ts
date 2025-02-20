@@ -12,7 +12,7 @@ export enum JobActionType {
 }
 
 export enum EntityType {
-  general= 'general',
+  general = 'general',
   supplier = 'supplier',
   warehouseManagemenSystem = 'warehouse-management-system',
   order = 'order',
@@ -44,6 +44,9 @@ export class JobConfiguration {
 
   @Column({ nullable: true })
   cronExpression: string;
+
+  @Column({ nullable: true })
+  description: string;
 
 }
 
