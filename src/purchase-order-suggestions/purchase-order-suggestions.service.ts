@@ -81,7 +81,7 @@ export class PurchaseOrderSuggestionsService {
   // }
 
   suggestPurchaseOrderCandidateQuantity(inventory: Inventory) {
-    return Math.abs(inventory.actual_stock)
+    return Math.abs(inventory.stock_balance)
   }
 
   async upsert(params: Partial<UpserPurchaseOrderSuggestionDto>) {

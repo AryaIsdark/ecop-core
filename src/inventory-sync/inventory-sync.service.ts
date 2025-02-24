@@ -77,6 +77,7 @@ export class InventorySyncService {
       inventory.number_of_items = item.physical
       inventory.to_receive_number_of_items = item.announced
       inventory.actual_stock = item.nettoSalable + item.announced
+      inventory.stock_balance = inventory.sellable_number_of_items - inventory.stock_limit;
       inventories.push(inventory)
     }
 
