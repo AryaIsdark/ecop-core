@@ -38,8 +38,11 @@ export class InventorySyncService {
 
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
     const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
+    let count = 0
     const inventories: Partial<Inventory>[] = []
     for (const article of articles) {
+
+      const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
       const newStockLimit = article.stockLimit === 1 ? 0 : article.stockLimit // this is temporary
       const inventory = new Inventory()
       inventory.clientId = clientId;
@@ -47,12 +50,13 @@ export class InventorySyncService {
       inventory.product_ean = article.articleNumber;
       inventory.product_sku = article.articleNumber;
       inventory.sellable_number_of_items = article.inventoryInfo.sellableNumberOfItems
-      inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems || 0
+      inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
-      inventory.stock_limit = newStockLimit // this is temporary
+      inventory.stock_limit = article.stockLimit ?? 0// this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
-      inventory.stock_need = Math.max(0, inventory.stock_limit - (inventory.number_of_items + inventory.to_receive_number_of_items))
+      inventory.stock_need = availableStock - inventory.number_of_book_items - inventory.stock_limit;
+      inventory.stock_balance = availableStock - inventory.number_of_book_items - inventory.stock_limit;
 
       inventories.push(inventory)
     }

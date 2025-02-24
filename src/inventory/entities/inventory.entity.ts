@@ -43,6 +43,9 @@ export class Inventory extends BaseEntity {
 
   @Column({ nullable: true })
   stock_need: number;
+
+  @Column({ nullable: true })
+  stock_balance: number;
 }
 
 export type InventoryQueryParams = {

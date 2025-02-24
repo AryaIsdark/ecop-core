@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UpserPurchaseOrderSuggestionDto } from './dto/create-purchase-order-suggestion.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrderSuggestion } from './entities';
-import { Brackets, LessThan, Repository } from 'typeorm';
+import { Brackets, LessThan, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
 import { Product, ProductsService } from 'src/products';
 import { OrderLinesService } from 'src/order-lines';
 import { Inventory } from 'src/inventory/entities';
@@ -41,7 +41,7 @@ export class PurchaseOrderSuggestionsService {
 
   async suggestPurchaseOrders(clientId, supplierId) {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = []
-    const inventories = await this.inventoryRepository.find({ where: { clientId, actual_stock: LessThan(0) } })
+    const inventories = await this.inventoryRepository.find({ where: { clientId, stock_balance: LessThan(0), number_of_book_items: MoreThan(0) } })
     const supplierProducts = await this.productRepository.find({ where: { tenantId: clientId } })
     const availableProducts = this.filterAvailableProducts(supplierProducts);
 
@@ -54,7 +54,7 @@ export class PurchaseOrderSuggestionsService {
         matchProduct = products[0]
       }
 
-      if (products.length > 0) {
+      if (products.length > 1) {
         matchProduct = identifyCheapestProducts(products)?.[0] as unknown as Product
       }
 
