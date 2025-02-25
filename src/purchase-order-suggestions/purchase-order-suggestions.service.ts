@@ -41,7 +41,7 @@ export class PurchaseOrderSuggestionsService {
 
   async suggestPurchaseOrders(clientId, supplierId) {
     const suggestions: UpserPurchaseOrderSuggestionDto[] = []
-    const inventories = await this.inventoryRepository.find({ where: { clientId, stock_balance: LessThan(0), number_of_book_items: MoreThan(0) } })
+    const inventories = await this.inventoryRepository.find({ where: { clientId, stock_balance: LessThan(0) } })
     const supplierProducts = await this.productRepository.find({ where: { tenantId: clientId } })
     const availableProducts = this.filterAvailableProducts(supplierProducts);
 
