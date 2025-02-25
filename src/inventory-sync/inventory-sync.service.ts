@@ -70,6 +70,7 @@ export class InventorySyncService {
     for (const item of wicsStocks) {
       const inventory = new Inventory()
       inventory.clientId = clientId;
+      inventory.stock_limit = inventory.stock_limit ?? 0
       inventory.article_number = item.itemCode;
       inventory.product_ean = item.itemCode;
       inventory.product_sku = item.itemCode;
@@ -77,7 +78,7 @@ export class InventorySyncService {
       inventory.number_of_items = item.physical
       inventory.to_receive_number_of_items = item.announced
       inventory.actual_stock = item.nettoSalable + item.announced
-      inventory.stock_balance = inventory.sellable_number_of_items - inventory.stock_limit;
+      inventory.stock_balance = inventory.actual_stock - inventory.stock_limit;
       inventories.push(inventory)
     }
 

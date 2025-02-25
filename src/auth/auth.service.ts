@@ -22,9 +22,11 @@ export class AuthService {
   ) { }
 
   extractTokenPayload(authorization: string): JwtTokenProps {
-    const token = authorization.split(' ')[1];
-    const decodedToken = this.jwtService.decode(token);
-    return decodedToken;
+    if (authorization) {
+      const token = authorization.split(' ')[1];
+      const decodedToken = this.jwtService.decode(token);
+      return decodedToken;
+    }
   }
 
 
