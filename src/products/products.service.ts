@@ -127,10 +127,11 @@ export class ProductsService {
 
             await transactionalEntityManager.upsert(
               Product,
-              { 
-                ...productDataWithoutId, 
+              {
+                ...productDataWithoutId,
                 expiration_date_normalized: product.expiration_date ? normalizeDate(product.expiration_date) ?? null : null,
-                supplierId, tenantId, ean_normalized: normalizeEAN(product.ean) },
+                supplierId, tenantId, ean_normalized: normalizeEAN(product.ean)
+              },
               ['sku', 'tenantId'],
             );
           }
@@ -142,6 +143,14 @@ export class ProductsService {
     }
   }
 
+  async resetProductStockBySupplier(tenantId: number, supplierId: number) {
+    const clientProducts = await this.repository.find({ where: { tenantId, supplierId } })
+    const updates = []
+    for (const product of clientProducts) {
+      updates.push({ ...product, stock: '0' })
+    }
 
+    return await this.repository.save(updates)
+  }
 
 }

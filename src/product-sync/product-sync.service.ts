@@ -19,7 +19,7 @@ export class ProductSyncService {
     console.log('I ran handleSyncProductImagesJob')
     const products = await this.productsService.getClientProducts(jobConfiguration.tenantId)
     let uploadMediaItems = []
-    for (const product of products.filter((p)=> p.main_image_url?.length && p.ean_normalized)) {
+    for (const product of products.filter((p) => p.main_image_url?.length && p.ean_normalized)) {
       const createProductMediaDto: CreateProductMediaDto = {
         clientId: jobConfiguration.tenantId,
         product_ean: product.ean_normalized,
@@ -65,7 +65,7 @@ export class ProductSyncService {
     try {
       const { entityReferenceId, tenantId, config } = jobConfiguration
       const { feed_url, productMappingKeys, authorization, responsePath } = config
-      const data = await readWebApiFeed(feed_url, authorization, responsePath, productMappingKeys )
+      const data = await readWebApiFeed(feed_url, authorization, responsePath, productMappingKeys)
       await this.handleSyncProducts(tenantId, entityReferenceId, data as unknown as Product[])
     }
     catch (e) {
@@ -74,8 +74,10 @@ export class ProductSyncService {
   }
 
 
-
   async handleSyncProductJob(jobConfiguration: JobConfiguration) {
+
+    await this.productsService.resetProductStockBySupplier(jobConfiguration.tenantId, jobConfiguration.entityReferenceId)
+
     try {
       if (jobConfiguration.syncType === 'XmlFeed') {
         await this.handleSyncXmlFeedJob(jobConfiguration)
