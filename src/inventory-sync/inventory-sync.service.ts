@@ -36,6 +36,15 @@ export class InventorySyncService {
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService) {
   }
 
+  getStockBalance(inventory: Inventory, availableStock: number) {
+    const stock_balance = availableStock - inventory.number_of_book_items - inventory.stock_limit
+    if (inventory.number_of_book_items > 0) {
+      return stock_balance
+    }
+
+    return 0
+  }
+
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
     const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
     let count = 0
@@ -56,7 +65,7 @@ export class InventorySyncService {
       inventory.stock_limit = article.stockLimit ?? 0// this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
       inventory.stock_need = availableStock - inventory.number_of_book_items - inventory.stock_limit;
-      inventory.stock_balance = availableStock - inventory.number_of_book_items - inventory.stock_limit;
+      inventory.stock_balance = this.getStockBalance(inventory, availableStock);
 
       inventories.push(inventory)
     }
