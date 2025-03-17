@@ -39,17 +39,14 @@ export class InventoryService {
 
       const clientWmsConfigs = await this.clientService.getWarehouseManagementSystemJobConfigurations(inventory.clientId)
       const clientWms = clientWmsConfigs[0]
-      let response;
-      if (clientWms.warehouseManagementSystem.name === 'ongoing') {
-        response = await this.ongoingConnectorService
-          .updateArticleStockLimit(clientWms.config as OngoingWmsConfig, inventory.article_number, newStockLimit)
-      }
-
-      if (response) {
-        inventory.stock_limit = newStockLimit
-
-        return await this.repository.save(inventory)
-      }
+      
+      // if (clientWms.warehouseManagementSystem.name === 'ongoing') {
+      //   response = await this.ongoingConnectorService
+      //     .updateArticleStockLimit(clientWms.config as OngoingWmsConfig, inventory.article_number, newStockLimit)
+      // }
+    
+      await this.repository.update(id, { stock_limit: newStockLimit });
+      
     }
     catch (e) {
       return {
