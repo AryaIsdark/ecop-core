@@ -13,7 +13,6 @@ import { normalizeDate } from 'src/utils/normalize-date/normalize-date';
 
 @Injectable()
 export class ProductsService {
-
   constructor(
     @InjectRepository(Product)
     private readonly repository: Repository<Product>,
@@ -21,16 +20,23 @@ export class ProductsService {
     private readonly entityManager: EntityManager,
     private readonly inventoryService: InventoryService,
     private readonly suppliersService: SuppliersService,
-    private readonly productMediaSerivce: ProductMediaService
-  ) {
-
-  }
+    private readonly productMediaSerivce: ProductMediaService,
+  ) {}
   create(createProductDto: CreateProductDto) {
     return 'This action adds a new product';
   }
 
   async getClientProducts(clientId: number) {
-    return await this.repository.find({ where: { tenantId: clientId } })
+    const products = await this.repository.find({
+      where: { tenantId: clientId },
+    });
+    const mappedProducts = [];
+    for (const product of products) {
+      const supplier = await this.suppliersService.findOne(product.supplierId);
+      mappedProducts.push({ ...product, supplier });
+    }
+
+    return mappedProducts;
   }
 
   async query(
@@ -38,49 +44,62 @@ export class ProductsService {
   ): Promise<Paginate<Product>> {
     const take = params.pageSize;
     const skip = (params.pageNumber - 1) * params.pageSize;
-    let whereConditions: Record<string, any> = {
-
-    }
+    let whereConditions: Record<string, any> = {};
 
     if (params.tenantId) {
-      whereConditions.tenantId = params.tenantId
+      whereConditions.tenantId = params.tenantId;
     }
     if (params.supplierId) {
-      whereConditions.supplierId = params.supplierId
+      whereConditions.supplierId = params.supplierId;
     }
     if (params.ean) {
-      whereConditions.ean = ILike(`%${params.ean}%`)
+      whereConditions.ean = ILike(`%${params.ean}%`);
     }
     if (params.ean_normalized) {
-      whereConditions.ean_normalized = ILike(`%${params.ean_normalized}%`)
+      whereConditions.ean_normalized = ILike(`%${params.ean_normalized}%`);
     }
     if (params.sku) {
-      whereConditions.sku = ILike(`%${params.sku}%`)
+      whereConditions.sku = ILike(`%${params.sku}%`);
     }
     if (params.brand) {
-      whereConditions.brand = ILike(`%${params.brand}%`)
+      whereConditions.brand = ILike(`%${params.brand}%`);
     }
     if (params.name) {
-      whereConditions.name = ILike(`%${params.name}%`)
+      whereConditions.name = ILike(`%${params.name}%`);
     }
     if (params.trending_score) {
-      whereConditions.trending_score = params.trending_score
+      whereConditions.trending_score = params.trending_score;
     }
 
-    const [products, count] = await this.repository.findAndCount({ where: whereConditions, take, skip })
-    const productsWithInventory = []
+    const [products, count] = await this.repository.findAndCount({
+      where: whereConditions,
+      take,
+      skip,
+    });
+    const productsWithInventory = [];
 
     for (const product of products) {
-      const inventoryInfo = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
-      const media = await this.productMediaSerivce.getProductMedia(product.ean_normalized, product.tenantId)
+      const inventoryInfo = await this.inventoryService.findWithEan(
+        product.ean_normalized,
+        product.tenantId,
+      );
+      const media = await this.productMediaSerivce.getProductMedia(
+        product.ean_normalized,
+        product.tenantId,
+      );
       const supplier = await this.suppliersService.findOne(product.supplierId);
-      productsWithInventory.push({ ...product, inventoryInfo, supplier, media })
+      productsWithInventory.push({
+        ...product,
+        inventoryInfo,
+        supplier,
+        media,
+      });
     }
 
     return {
       count,
-      data: productsWithInventory
-    }
+      data: productsWithInventory,
+    };
   }
 
   findAll() {
@@ -88,11 +107,13 @@ export class ProductsService {
   }
 
   async findOne(id: number) {
+    const product = await this.repository.findOne({ where: { id } });
+    const inventoryInfo = await this.inventoryService.findWithEan(
+      product.ean_normalized,
+      product.tenantId,
+    );
 
-    const product = await this.repository.findOne({ where: { id } })
-    const inventoryInfo = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
-
-    return { ...product, inventoryInfo }
+    return { ...product, inventoryInfo };
   }
   async update(id: number, updateProductDto: UpdateProductDto) {
     // Find the product by ID
@@ -109,7 +130,6 @@ export class ProductsService {
     return await this.repository.save(product);
   }
 
-
   remove(id: number) {
     return `This action removes a #${id} product`;
   }
@@ -120,23 +140,29 @@ export class ProductsService {
     products: Partial<Product>[],
   ) {
     try {
-      await this.entityManager.transaction(async (transactionalEntityManager) => {
-        for (const product of products) {
-          if (product) {
-            const { id, ...productDataWithoutId } = product; // Exclude 'id' from the product data
+      await this.entityManager.transaction(
+        async (transactionalEntityManager) => {
+          for (const product of products) {
+            if (product) {
+              const { id, ...productDataWithoutId } = product; // Exclude 'id' from the product data
 
-            await transactionalEntityManager.upsert(
-              Product,
-              {
-                ...productDataWithoutId,
-                expiration_date_normalized: product.expiration_date ? normalizeDate(product.expiration_date) ?? null : null,
-                supplierId, tenantId, ean_normalized: normalizeEAN(product.ean)
-              },
-              ['sku', 'tenantId'],
-            );
+              await transactionalEntityManager.upsert(
+                Product,
+                {
+                  ...productDataWithoutId,
+                  expiration_date_normalized: product.expiration_date
+                    ? (normalizeDate(product.expiration_date) ?? null)
+                    : null,
+                  supplierId,
+                  tenantId,
+                  ean_normalized: normalizeEAN(product.ean),
+                },
+                ['sku', 'tenantId'],
+              );
+            }
           }
-        }
-      });
+        },
+      );
     } catch (error) {
       console.error(error);
       throw error;
@@ -144,13 +170,14 @@ export class ProductsService {
   }
 
   async resetProductStockBySupplier(tenantId: number, supplierId: number) {
-    const clientProducts = await this.repository.find({ where: { tenantId, supplierId } })
-    const updates = []
+    const clientProducts = await this.repository.find({
+      where: { tenantId, supplierId },
+    });
+    const updates = [];
     for (const product of clientProducts) {
-      updates.push({ ...product, stock: '0' })
+      updates.push({ ...product, stock: '0' });
     }
 
-    return await this.repository.save(updates)
+    return await this.repository.save(updates);
   }
-
 }
