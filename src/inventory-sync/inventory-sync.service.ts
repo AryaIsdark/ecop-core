@@ -149,6 +149,31 @@ export class InventorySyncService {
   }
 
   async getStockAdjustmentForClientStore(clientId: number, model: ShopStockModel): Promise<InventoryStockSuggestion[]> {
+    const inventories = await this.inventoryService.getClientInventories(clientId);
+    const products = await this.productsService.getClientProducts(clientId);
+    const suggestions: InventoryStockSuggestion[] = [];
+
+    // Map products by normalized EAN for quick lookup
+    const productMap = new Map(products.map(product => [normalizeEAN(product.ean), product]));
+
+    for (const inventory of inventories) {
+        const normalizedEAN = normalizeEAN(inventory.product_ean);
+        const product = productMap.get(normalizedEAN);
+
+        if (!product) continue;
+
+        const warehouseStock = inventory.actual_stock || 0;
+        const supplierStock = this.getProductSupplierStock(product, products);
+        const stockSuggestion = this.getStockSuggestionBasedOnModel(model, Number(supplierStock), warehouseStock);
+        
+        suggestions.push({ product_ean: inventory.product_ean, stockSuggestion });
+    }
+
+    return suggestions;
+}
+
+
+  async getStockAdjustmentForClientStore_deprecated(clientId: number, model: ShopStockModel): Promise<InventoryStockSuggestion[]> {
     const inventories = await this.inventoryService.getClientInventories(clientId)
     const products = await this.productsService.getClientProducts(clientId);
     const suggestions: InventoryStockSuggestion[] = [];
