@@ -62,6 +62,9 @@ export class JobProcessorService {
             if (jobConfiguration.actionType === JobActionType.WebAutomation) {
                 await this.webAutomationService.handleWebAutomationJob(jobConfiguration)
             }
+            if (jobConfiguration.actionType === JobActionType.AdjustStockMinimumReorder) {
+                await this.inventorySyncService.handleAdjustStockMinimumReorder(jobConfiguration)
+            }
 
             currentJob.status = JobStatus.Done
             await this.repository.update(currentJob.id, currentJob)

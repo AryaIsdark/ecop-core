@@ -6,9 +6,12 @@ import { WarehouseManagementSystemsService } from 'src/warehouse-management-syst
 import { Inventory } from 'src/inventory/entities';
 import { WicsWmsConfig, WicsWmsConnectorService } from 'src/wics-wms-connector/wics-wms-connector.service';
 import { EcommercePlatformsService } from 'src/ecommerce-platforms';
-import { Product, ProductsService } from 'src/products';
+import { Product, ProductTrendingScore, ProductsService } from 'src/products';
 import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/shopify-connector.service';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
+import { ProductAnalyticsService, TRENDING_RANGE } from 'src/product-analytics';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 export type InventoryStockSuggestion = {
   product_ean: string,
@@ -27,13 +30,45 @@ export enum ShopStockModel {
 @Injectable()
 export class InventorySyncService {
   constructor(
+    @InjectRepository(Inventory)
+    private readonly inventoryRepository : Repository<Inventory>,
     private readonly inventoryService: InventoryService,
     private readonly shopifyConnectorService: ShopifyConnectorService,
     private readonly productsService: ProductsService,
     private readonly ongoingWmsConnectorService: OngoingWmsConnectorService,
     private readonly wicsWmsConnectorService: WicsWmsConnectorService,
     private readonly ecommercePlatformService: EcommercePlatformsService,
-    private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService) {
+    private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService,
+    private readonly productAnalyticService : ProductAnalyticsService
+    ) {
+  }
+
+  async handleAdjustStockMinimumReorder(jobConfiguration: JobConfiguration){
+    const currentDate = new Date();
+    const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    let inventoryUpdates : Partial<Inventory>[] = []
+
+
+    const trendingProducts = await this.productsService.query({pageNumber: 1, pageSize: 1000, tenantId: jobConfiguration.tenantId, trending_score: ProductTrendingScore.HIGH})
+    
+    for(const product of trendingProducts.data){
+      let orderCounts = 0
+      const inventory = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
+      const analytics = await this.productAnalyticService.getOrderQuantityForGivenRange(product.ean_normalized, dateFrom, currentDate)
+      for(const  analytic of analytics){
+        orderCounts = orderCounts + analytic.count
+       
+      }
+      inventory.reorder_point = orderCounts
+      inventoryUpdates.push(inventory)
+    }
+    try{
+      await this.inventoryRepository.save(inventoryUpdates)
+    }
+    catch(e){
+      console.error(e)
+    }
+    
   }
 
   getStockBalance(inventory: Inventory, availableStock: number) {
