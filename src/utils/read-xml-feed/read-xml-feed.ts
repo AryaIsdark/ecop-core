@@ -7,31 +7,27 @@ interface MappingKeys {
   [key: string]: string;
 }
 
-// interface Product {
-//   [key: string]: string;
-// }
-
-
-export const normalizePrice = (price: string)=> {
-  return Number(price.replace(',', '.'));
-}
+export const normalizePrice = (price: string) => {
+  return Number(price.replace(',', '.').trim());
+};
 
 export const getPrice = (discountInPercentage: number, originalPrice: number) => {
   if (!discountInPercentage) {
-    return originalPrice
+    return originalPrice;
   }
 
-  const discount = (originalPrice * discountInPercentage) / 100
-  const finalPrice = originalPrice - discount
+  const discount = (originalPrice * discountInPercentage) / 100;
+  const finalPrice = originalPrice - discount;
 
-  if(finalPrice){
-    return finalPrice
-  }
+  return finalPrice || originalPrice;
+};
 
-  else return originalPrice
-}
-
-export async function getProductsFromXML(url: string, initialNode: string, mappingKeys: MappingKeys, discountInPercentage: number): Promise<Partial<Product>[]> {
+export async function getProductsFromXML(
+  url: string,
+  initialNode: string,
+  mappingKeys: MappingKeys,
+  discountInPercentage: number
+): Promise<Partial<Product>[]> {
   try {
     // Fetch the XML content from the URL
     const response = await axios.get(url, { responseType: 'text' });
@@ -39,12 +35,12 @@ export async function getProductsFromXML(url: string, initialNode: string, mappi
 
     // Parse the XML string using xmldom
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+    const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
 
-    // Function to get text content by XPath
+    // Function to get text content by XPath and trim it
     function getTextContentByXPath(xpathExpr: string, contextNode: Node): string {
       const nodes = xpath.select(xpathExpr, contextNode) as Node[];
-      return nodes.length > 0 ? nodes[0].textContent || '' : '';
+      return nodes.length > 0 ? nodes[0].textContent?.trim() || '' : '';
     }
 
     // Extract all product nodes
@@ -62,12 +58,25 @@ export async function getProductsFromXML(url: string, initialNode: string, mappi
         }
       }
 
-      productArray.push({ ...product, price: getPrice(discountInPercentage, normalizePrice(product.price as unknown as string))});
+      // Ensure all values are trimmed
+      Object.keys(product).forEach((key) => {
+        if (typeof product[key] === 'string') {
+          product[key] = (product[key] as string).trim();
+        }
+      });
+
+      productArray.push({
+        ...product,
+        price: getPrice(
+          discountInPercentage,
+          normalizePrice(product.price as unknown as string)
+        ),
+      });
     }
 
     return productArray;
   } catch (error) {
-    console.error("Error fetching or processing XML:", error);
+    console.error('Error fetching or processing XML:', error);
     throw error;
   }
 }

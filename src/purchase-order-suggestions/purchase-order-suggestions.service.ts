@@ -26,7 +26,7 @@ export class PurchaseOrderSuggestionsService {
   }
 
   getSupplierStock(stockValue: string) {
-    const stock = parseInt(stockValue);
+    const stock = parseFloat(stockValue);
     return stock
   }
 
