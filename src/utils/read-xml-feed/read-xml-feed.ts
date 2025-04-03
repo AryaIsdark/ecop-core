@@ -11,14 +11,24 @@ interface MappingKeys {
 //   [key: string]: string;
 // }
 
+
+export const normalizePrice = (price: string)=> {
+  return Number(price.replace(',', '.'));
+}
+
 export const getPrice = (discountInPercentage: number, originalPrice: number) => {
   if (!discountInPercentage) {
     return originalPrice
   }
 
   const discount = (originalPrice * discountInPercentage) / 100
+  const finalPrice = originalPrice - discount
 
-  return originalPrice - discount
+  if(finalPrice){
+    return finalPrice
+  }
+
+  else return originalPrice
 }
 
 export async function getProductsFromXML(url: string, initialNode: string, mappingKeys: MappingKeys, discountInPercentage: number): Promise<Partial<Product>[]> {
@@ -52,7 +62,7 @@ export async function getProductsFromXML(url: string, initialNode: string, mappi
         }
       }
 
-      productArray.push({ ...product, price: getPrice(discountInPercentage, product.price)  });
+      productArray.push({ ...product, price: getPrice(discountInPercentage, normalizePrice(product.price as unknown as string))});
     }
 
     return productArray;
