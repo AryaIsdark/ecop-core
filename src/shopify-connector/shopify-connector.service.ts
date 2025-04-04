@@ -106,6 +106,9 @@ export class ShopifyConnectorService {
     }
   }
 
+  async delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   async syncInventory(shopifyConfig: ShopifyConfig, inventoryStockSuggestions: InventoryStockSuggestion[]) {
     const allProducts = await handleBulkQueryOperation(shopifyConfig, GET_PRODUCT_VARIANTS_WITH_INVENTORY_INFOR);
@@ -121,10 +124,12 @@ export class ShopifyConnectorService {
       });
     }
 
+    
     const chunkedQuantities = chunkArray(quantities, 250);
 
     for (const chunk of chunkedQuantities) {
       await inventorySetQuantities(shopifyConfig, chunk);
+      await this.delay(10000)
     }
   }
 
