@@ -165,6 +165,9 @@ export class InventorySyncService {
   }
 
   getProductSupplierStock(product: Product, products: Product[]) {
+    if(!product){
+      return 0
+    }
     const filteredProducts = products.filter((p) => product.ean === p.ean);
     // Use Math.max to find the highest stock among the filtered products
     const highestSupplierStock = filteredProducts.reduce((maxStock, p) => {
@@ -194,9 +197,6 @@ export class InventorySyncService {
     for (const inventory of inventories) {
         const normalizedEAN = normalizeEAN(inventory.product_ean);
         const product = productMap.get(normalizedEAN);
-
-        if (!product) continue;
-
         const warehouseStock = inventory.actual_stock || 0;
         const supplierStock = this.getProductSupplierStock(product, products);
         const stockSuggestion = this.getStockSuggestionBasedOnModel(model, Number(supplierStock), warehouseStock);

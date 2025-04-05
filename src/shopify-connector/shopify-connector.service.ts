@@ -124,12 +124,17 @@ export class ShopifyConnectorService {
       });
     }
 
-    
     const chunkedQuantities = chunkArray(quantities, 250);
 
     for (const chunk of chunkedQuantities) {
-      await inventorySetQuantities(shopifyConfig, chunk);
-      await this.delay(10000)
+      try{
+        await inventorySetQuantities(shopifyConfig, chunk);
+      }
+      catch(e){
+        console.error(e)
+      }
+      
+      // await this.delay(10000)
     }
   }
 
