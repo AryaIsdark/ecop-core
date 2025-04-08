@@ -154,17 +154,18 @@ export class InventorySyncService {
     return 0
   }
 
-  getProductSupplierStock_deprecated(product: Product, products: Product[]) {
-    let supplierStock = 0
-    const filteredProducts = products.filter((p) => product.ean === p.ean)
-    for (const product of filteredProducts) {
-      supplierStock = supplierStock + parseInt(product.stock)
-    }
 
-    return supplierStock
+  findSupplierProductWithHighestStockForGivenProduct(products: Product[]): Product | null {
+    if (products.length === 0) return null;
+  
+    return products.reduce((prev, current) => {
+      const prevStock = parseFloat(prev.stock || '0');
+      const currentStock = parseFloat(current.stock || '0');
+      return currentStock > prevStock ? current : prev;
+    });
   }
 
-  getProductSupplierStock(product: Product, products: Product[]) {
+  getProductSupplierStock_deprecated(product: Product, products: Product[]) {
     if(!product){
       return 0
     }
@@ -191,42 +192,14 @@ export class InventorySyncService {
     const products = await this.productsService.getClientProducts(clientId);
     const suggestions: InventoryStockSuggestion[] = [];
 
-    // Map products by normalized EAN for quick lookup
-    const productMap = new Map(products.map(product => [normalizeEAN(product.ean), product]));
-
     for (const inventory of inventories) {
         const normalizedEAN = normalizeEAN(inventory.product_ean);
-        const product = productMap.get(normalizedEAN);
+        const matchingProducts = products.filter((product)=> normalizeEAN(product.ean) === normalizedEAN)
         const warehouseStock = inventory.actual_stock || 0;
-        const supplierStock = this.getProductSupplierStock(product, products);
-        const stockSuggestion = this.getStockSuggestionBasedOnModel(model, Number(supplierStock), warehouseStock);
+        const supplierProductWithHighestStock = this.findSupplierProductWithHighestStockForGivenProduct(matchingProducts);
+        const stockSuggestion = this.getStockSuggestionBasedOnModel(model, Number(supplierProductWithHighestStock.stock), warehouseStock);
         
         suggestions.push({ product_ean: inventory.product_ean, stockSuggestion });
-    }
-
-    return suggestions;
-}
-
-
-  async getStockAdjustmentForClientStore_deprecated(clientId: number, model: ShopStockModel): Promise<InventoryStockSuggestion[]> {
-    const inventories = await this.inventoryService.getClientInventories(clientId)
-    const products = await this.productsService.getClientProducts(clientId);
-    const suggestions: InventoryStockSuggestion[] = [];
-
-    // Map inventories by normalized product_ean for quick lookup
-    const inventoryMap = new Map(inventories.map(inventory => [normalizeEAN(inventory.product_ean), inventory.actual_stock]));
-
-    // Precompute supplier stock map
-    const supplierStockMap = this.getProductSupplierStockMap(products);
-
-    for (const product of products) {
-      if (product.ean_normalized === '0850006755646') {
-        console.log(product)
-      }
-      const warehouseStock = inventoryMap.get(normalizeEAN(product.ean)) || 0;
-      const supplierStock = this.getProductSupplierStock(product, products)
-      const stockSuggestion = this.getStockSuggestionBasedOnModel(model, Number(supplierStock), warehouseStock);
-      suggestions.push({ product_ean: product.ean, stockSuggestion });
     }
 
     return suggestions;
