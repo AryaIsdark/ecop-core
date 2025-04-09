@@ -200,7 +200,7 @@ export class PurchaseOrderLineItemsService {
   }
 
   async export(params: ExportPurchaseOrderLineItemsParams) {
-    const { purchaseOrderId, exportFormat, fields, fieldsOrder, showHeader = true } = params
+    const { purchaseOrderId, exportFormat, separatorCharacter, fields, fieldsOrder, showHeader = true } = params
     const lineItems = await this.repository.find({ where: { purchaseOrderId }, order: { id: 'ASC' } })
     const mappedLineItems = []
     for (const lineItem of lineItems) {
@@ -212,7 +212,7 @@ export class PurchaseOrderLineItemsService {
 
     if (exportFormat === ExportFormat.CSV) {
       // Handle CSV export (.csv)
-      return exportToCsv(mappedLineItems, purchaseOrderKeys, showHeader, 'some file')
+      return exportToCsv(mappedLineItems, purchaseOrderKeys, showHeader, 'some file', separatorCharacter)
     }
     if (exportFormat === ExportFormat.EXCEL) {
       // Handle EXCEL export (.excel)

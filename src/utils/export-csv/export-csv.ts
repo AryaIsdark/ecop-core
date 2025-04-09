@@ -20,22 +20,26 @@ export const exportToCsv = async <T>(
   keys: CsvKeyMapping<T>[],
   hasHeader: boolean,
   fileName: string,
+  separator: string = ',', 
   csvOptions: converter.Json2CsvOptions = {},
   rootFolder: string = process.cwd(),
   exportsFolder: string = 'exports',
 ): Promise<string | void> => {
   try {
-    const csv = await converter.json2csv(data as any, { keys: keys as any[], ...csvOptions });
+    const csv = await converter.json2csv(data as any, {
+      keys: keys as any[],
+      delimiter: { field: separator },
+      ...csvOptions,
+    });
 
-    // Remove headers
-    const csvWithoutHeaders = csv.split('\n').slice(1).join('\n');
+    // Remove headers if needed
+    const csvContent = hasHeader ? csv : csv.split('\n').slice(1).join('\n');
 
     const filePath = path.join(rootFolder, exportsFolder, fileName);
 
     await ensureDirectoryExistence(filePath);
 
-    // await fs.promises.writeFile(filePath, csvWithoutHeaders);
-    await fs.promises.writeFile(filePath, hasHeader ? csv : csvWithoutHeaders );
+    await fs.promises.writeFile(filePath, csvContent);
     return filePath;
   } catch (e) {
     console.error(e);
