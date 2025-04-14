@@ -216,6 +216,7 @@ export class InventorySyncService {
       }
     }
     catch (e) {
+      console.error(e)
       throw (e)
     }
 
