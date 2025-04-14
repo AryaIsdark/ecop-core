@@ -187,6 +187,21 @@ export class InventorySyncService {
     return supplierStockMap;
   }
 
+   parseStockValue(stock: string | number | null | undefined): number {
+    if (stock == null) return 0;
+  
+    if (typeof stock === 'number') return stock;
+  
+    if (typeof stock === 'string') {
+      const numericPart = stock.match(/\d+/); // grabs the number part
+      if (numericPart) {
+        return parseInt(numericPart[0], 10);
+      }
+    }
+  
+    return 0;
+  }
+
   async getStockAdjustmentForClientStore(clientId: number, model: ShopStockModel): Promise<InventoryStockSuggestion[]> {
     const inventories = await this.inventoryService.getClientInventories(clientId);
     const products = await this.productsService.getClientProducts(clientId);
@@ -197,8 +212,8 @@ export class InventorySyncService {
         const matchingProducts = products.filter((product)=> normalizeEAN(product.ean) === normalizedEAN)
         const warehouseStock = inventory.actual_stock || 0;
         const supplierProductWithHighestStock = this.findSupplierProductWithHighestStockForGivenProduct(matchingProducts);
-        const stockSuggestion = this.getStockSuggestionBasedOnModel(model, Number(supplierProductWithHighestStock.stock), warehouseStock);
-        
+        const supplierStock = this.parseStockValue(supplierProductWithHighestStock?.stock);
+        const stockSuggestion = this.getStockSuggestionBasedOnModel(model,supplierStock,warehouseStock);      
         suggestions.push({ product_ean: inventory.product_ean, stockSuggestion });
     }
 
