@@ -189,7 +189,6 @@ export class ShopifyConnectorService {
           };
           lineItems.push(orderLine);
         }
-        console.log('status', shopifyOrder.displayFulfillmentStatus)
         const order: CreateOrderDto = {
           reference: shopifyOrder.confirmationNumber,
           originalCreatedAt: shopifyOrder.createdAt,
