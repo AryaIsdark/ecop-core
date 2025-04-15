@@ -9,7 +9,8 @@ export enum JobActionType {
   WebAutomation = 'web-automation',
   SyncProductImages = 'sync-product-images',
   MarkTrendingProducts = 'mark-trending-products',
-  AdjustStockMinimumReorder = 'adjust-stock-minimum-reorder'
+  AdjustStockMinimumReorder = 'adjust-stock-minimum-reorder',
+  PingService = 'ping-service'
 }
 
 export enum EntityType {

@@ -10,6 +10,7 @@ import { WebAutomationsService } from 'src/web-automations/web-automations.servi
 import { PurchaseOrderSyncService } from 'src/purchase-order-sync/purchase-order-sync.service';
 import { Job, JobStatus } from 'src/jobs';
 import { ProductAnalyticsService } from 'src/product-analytics';
+import axios from 'axios';
 
 @Injectable()
 export class JobProcessorService {
@@ -23,7 +24,7 @@ export class JobProcessorService {
         private readonly orderSyncService: OrderSyncService,
         private readonly inventorySyncService: InventorySyncService,
         private readonly webAutomationService: WebAutomationsService,
-        private readonly productAnalyticsService: ProductAnalyticsService
+        private readonly productAnalyticsService: ProductAnalyticsService,
     ) {
 
     }
@@ -65,6 +66,9 @@ export class JobProcessorService {
             if (jobConfiguration.actionType === JobActionType.AdjustStockMinimumReorder) {
                 await this.inventorySyncService.handleAdjustStockMinimumReorder(jobConfiguration)
             }
+            if (jobConfiguration.actionType === JobActionType.PingService) {
+                await this.handlePingWebUrl(jobConfiguration.config.url)
+            }
 
             currentJob.status = JobStatus.Done
             await this.repository.update(currentJob.id, currentJob)
@@ -102,6 +106,17 @@ export class JobProcessorService {
         newJob.entityReferenceId = entityReferenceId;
         newJob.tenantId = tenantId
         return await this.repository.save(newJob)
+    }
+
+    async handlePingWebUrl(webUrl: string){
+        try{
+            const response = await axios.get(webUrl)
+            return response.data
+        }
+        catch (e){
+            console.error(e)
+            throw e
+        }
     }
 
 }
