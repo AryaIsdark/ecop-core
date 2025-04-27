@@ -21,7 +21,7 @@ export class WebAutomationsService {
             const products = await this.powerbodyConnectorService.handleWebAutomationJob(jobConfiguration.config as unknown as PowerbodyWebAutomationConfig, tenantId)
             if(products.length){
                 console.log(`${products.length} found, syncing products begins...`)
-                await this.productSyncService.handleSyncProducts(tenantId, entityReferenceId, products)
+                await this.productSyncService.handleSyncProducts(tenantId, entityReferenceId, products, jobConfiguration)
                 console.log(`syncing products finished succesfully`)
             }   
         }
