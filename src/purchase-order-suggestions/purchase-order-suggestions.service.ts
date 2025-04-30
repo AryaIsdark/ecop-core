@@ -2,12 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { UpserPurchaseOrderSuggestionDto } from './dto/create-purchase-order-suggestion.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PurchaseOrderSuggestion } from './entities';
-import { Brackets, LessThan, LessThanOrEqual, MoreThan, Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { Product, ProductsService } from 'src/products';
-import { OrderLinesService } from 'src/order-lines';
 import { Inventory } from 'src/inventory/entities';
 import { identifyCheapestProducts } from 'src/utils';
-import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
 @Injectable()
 export class PurchaseOrderSuggestionsService {
@@ -75,12 +73,12 @@ export class PurchaseOrderSuggestionsService {
     return suggestions
   }
 
-
-  // suggestQuantityBasedOnStockLimit(inventory: Inventory) {
-  //   return Math.max(inventory.stock_limit - inventory.actual_stock);
-  // }
-
   suggestPurchaseOrderCandidateQuantity(inventory: Inventory) {
+    
+    // if(inventory.minimum_reorder_amount > 0){
+    //   return inventory.minimum_reorder_amount 
+    // }
+
     return Math.abs(inventory.stock_balance)
   }
 

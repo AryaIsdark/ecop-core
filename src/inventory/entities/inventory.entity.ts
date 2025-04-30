@@ -36,9 +36,6 @@ export class Inventory extends BaseEntity {
   actual_stock: number;
 
   @Column({ nullable: true })
-  reorder_point: number;
-
-  @Column({ nullable: true })
   clientId: number;
 
   @Column({ nullable: true })
@@ -46,6 +43,9 @@ export class Inventory extends BaseEntity {
 
   @Column({ nullable: true })
   stock_balance: number;
+
+  @Column({ nullable: true })
+  minimum_reorder_amount: number;
 }
 
 export type InventoryQueryParams = {

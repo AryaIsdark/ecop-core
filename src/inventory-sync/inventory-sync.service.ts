@@ -48,7 +48,6 @@ export class InventorySyncService {
     const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
     let inventoryUpdates : Partial<Inventory>[] = []
 
-
     const trendingProducts = await this.productsService.query({pageNumber: 1, pageSize: 1000, tenantId: jobConfiguration.tenantId, trending_score: ProductTrendingScore.HIGH})
     
     for(const product of trendingProducts.data){
@@ -56,10 +55,9 @@ export class InventorySyncService {
       const inventory = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
       const analytics = await this.productAnalyticService.getOrderQuantityForGivenRange(product.ean_normalized, dateFrom, currentDate)
       for(const  analytic of analytics){
-        orderCounts = orderCounts + analytic.count
-       
+        orderCounts = orderCounts + analytic.count 
       }
-      inventory.reorder_point = orderCounts
+      inventory.minimum_reorder_amount = orderCounts
       inventoryUpdates.push(inventory)
     }
     try{
