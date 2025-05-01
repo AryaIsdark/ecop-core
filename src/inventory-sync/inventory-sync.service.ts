@@ -56,12 +56,14 @@ export class InventorySyncService {
     for(const product of trendingProducts){
       let orderCounts = 0
       const inventory = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
+      if(inventory){
       const analytics = await this.productAnalyticService.getOrderQuantityForGivenRange(product.ean_normalized, dateFrom, currentDate)
       for(const  analytic of analytics){
         orderCounts = orderCounts + analytic.count 
       }
       inventory.minimum_reorder_amount = orderCounts
       inventoryUpdates.push(inventory)
+      }
     }
     try{
       await this.inventoryRepository.save(inventoryUpdates)
