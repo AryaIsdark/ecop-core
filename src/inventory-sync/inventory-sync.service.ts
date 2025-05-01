@@ -32,6 +32,8 @@ export class InventorySyncService {
   constructor(
     @InjectRepository(Inventory)
     private readonly inventoryRepository : Repository<Inventory>,
+    @InjectRepository(Product)
+    private readonly productRepository : Repository<Product>,
     private readonly inventoryService: InventoryService,
     private readonly shopifyConnectorService: ShopifyConnectorService,
     private readonly productsService: ProductsService,
@@ -40,6 +42,7 @@ export class InventorySyncService {
     private readonly ecommercePlatformService: EcommercePlatformsService,
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService,
     private readonly productAnalyticService : ProductAnalyticsService
+    
     ) {
   }
 
@@ -48,9 +51,9 @@ export class InventorySyncService {
     const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
     let inventoryUpdates : Partial<Inventory>[] = []
 
-    const trendingProducts = await this.productsService.query({pageNumber: 1, pageSize: 1000, tenantId: jobConfiguration.tenantId, trending_score: ProductTrendingScore.HIGH})
+    const trendingProducts = await this.productRepository.find({where: {tenantId : jobConfiguration.tenantId}})
     
-    for(const product of trendingProducts.data){
+    for(const product of trendingProducts){
       let orderCounts = 0
       const inventory = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
       const analytics = await this.productAnalyticService.getOrderQuantityForGivenRange(product.ean_normalized, dateFrom, currentDate)

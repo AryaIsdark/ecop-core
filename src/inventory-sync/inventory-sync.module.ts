@@ -6,14 +6,14 @@ import { OngoingWmsConnectorModule } from 'src/ongoing-wms-connector/ongoing-wms
 import { WicsWmsConnectorModule } from 'src/wics-wms-connector/wics-wms-connector.module';
 import { EcommercePlatformsModule } from 'src/ecommerce-platforms';
 import { ShopifyConnectorModule } from 'src/shopify-connector/shopify-connector.module';
-import { ProductsModule } from 'src/products';
+import { Product, ProductsModule } from 'src/products';
 import { ProductAnalyticsModule } from 'src/product-analytics';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Inventory } from 'src/inventory/entities';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Inventory]),
+    TypeOrmModule.forFeature([Inventory, Product]),
     ProductsModule,
     ShopifyConnectorModule,
     InventoryModule,
