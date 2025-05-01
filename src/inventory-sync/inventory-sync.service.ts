@@ -46,33 +46,46 @@ export class InventorySyncService {
     ) {
   }
 
-  async handleAdjustStockMinimumReorder(jobConfiguration: JobConfiguration){
+  async handleAdjustStockMinimumReorder(jobConfiguration: JobConfiguration) {
     const currentDate = new Date();
     const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-    let inventoryUpdates : Partial<Inventory>[] = []
-
-    const trendingProducts = await this.productRepository.find({where: {tenantId : jobConfiguration.tenantId}})
-    
-    for(const product of trendingProducts){
-      let orderCounts = 0
-      const inventory = await this.inventoryService.findWithEan(product.ean_normalized, product.tenantId)
-      if(inventory){
-      const analytics = await this.productAnalyticService.getOrderQuantityForGivenRange(product.ean_normalized, dateFrom, currentDate)
-      for(const  analytic of analytics){
-        orderCounts = orderCounts + analytic.count 
+  
+    const trendingProducts = await this.productRepository.find({
+      where: { tenantId: jobConfiguration.tenantId },
+    });
+  
+    if (!trendingProducts.length) return;
+  
+    const inventoryUpdates: Partial<Inventory>[] = [];
+  
+    await Promise.all(
+      trendingProducts.map(async (product) => {
+        const [inventory, analytics] = await Promise.all([
+          this.inventoryService.findWithEan(product.ean_normalized, product.tenantId),
+          this.productAnalyticService.getOrderQuantityForGivenRange(
+            product.ean_normalized,
+            dateFrom,
+            currentDate
+          ),
+        ]);
+  
+        if (!inventory || !analytics.length) return;
+  
+        const totalOrderCount = analytics.reduce((sum, a) => sum + a.count, 0);
+        inventory.minimum_reorder_amount = totalOrderCount;
+        inventoryUpdates.push(inventory);
+      })
+    );
+  
+    if (inventoryUpdates.length) {
+      try {
+        await this.inventoryRepository.save(inventoryUpdates);
+      } catch (e) {
+        console.error('Error saving inventory updates:', e);
       }
-      inventory.minimum_reorder_amount = orderCounts
-      inventoryUpdates.push(inventory)
-      }
     }
-    try{
-      await this.inventoryRepository.save(inventoryUpdates)
-    }
-    catch(e){
-      console.error(e)
-    }
-    
   }
+  
 
   getStockBalance(inventory: Inventory, availableStock: number) {
     const stock_balance = availableStock - inventory.number_of_book_items - inventory.stock_limit
