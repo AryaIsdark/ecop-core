@@ -7,13 +7,13 @@ import { WicsWmsConnectorModule } from 'src/wics-wms-connector/wics-wms-connecto
 import { EcommercePlatformsModule } from 'src/ecommerce-platforms';
 import { ShopifyConnectorModule } from 'src/shopify-connector/shopify-connector.module';
 import { Product, ProductsModule } from 'src/products';
-import { ProductAnalyticsModule } from 'src/product-analytics';
+import { ProductAnalytic, ProductAnalyticsModule } from 'src/product-analytics';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Inventory } from 'src/inventory/entities';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Inventory, Product]),
+    TypeOrmModule.forFeature([Inventory, Product, ProductAnalytic]),
     ProductsModule,
     ShopifyConnectorModule,
     InventoryModule,

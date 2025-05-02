@@ -9,9 +9,9 @@ import { EcommercePlatformsService } from 'src/ecommerce-platforms';
 import { Product, ProductTrendingScore, ProductsService } from 'src/products';
 import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/shopify-connector.service';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
-import { ProductAnalyticsService, TRENDING_RANGE } from 'src/product-analytics';
+import { ProductAnalytic, ProductAnalyticsService, TRENDING_RANGE } from 'src/product-analytics';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, MoreThan, Repository } from 'typeorm';
 
 export type InventoryStockSuggestion = {
   product_ean: string,
@@ -34,6 +34,8 @@ export class InventorySyncService {
     private readonly inventoryRepository : Repository<Inventory>,
     @InjectRepository(Product)
     private readonly productRepository : Repository<Product>,
+    @InjectRepository(ProductAnalytic)
+    private readonly productAnalyticRepository : Repository<ProductAnalytic>,
     private readonly inventoryService: InventoryService,
     private readonly shopifyConnectorService: ShopifyConnectorService,
     private readonly productsService: ProductsService,
@@ -46,37 +48,30 @@ export class InventorySyncService {
     ) {
   }
 
-  async handleAdjustStockMinimumReorder(jobConfiguration: JobConfiguration) {
+  getOrderQuantityForItem(analytics: ProductAnalytic[] ){
+    let total = 0
+    for(const analytic of analytics){
+      total = total + analytic.count
+    }
+    
+    return total
+  }
+
+  async handleAdjustStockMinimumReorder(jobConfiguration: JobConfiguration){
     const currentDate = new Date();
     const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-  
-    const trendingProducts = await this.productRepository.find({
-      where: { tenantId: jobConfiguration.tenantId },
-    });
-  
-    if (!trendingProducts.length) return;
-  
+    const inventories = await this.inventoryRepository.find({where: {clientId: jobConfiguration.tenantId}})
+    const analytics = await this.productAnalyticRepository.find({where: { clientId: jobConfiguration.tenantId, createdAt: MoreThan(dateFrom) && LessThan(currentDate),  }})
     const inventoryUpdates: Partial<Inventory>[] = [];
-  
-    await Promise.all(
-      trendingProducts.map(async (product) => {
-        const [inventory, analytics] = await Promise.all([
-          this.inventoryService.findWithEan(product.ean_normalized, product.tenantId),
-          this.productAnalyticService.getOrderQuantityForGivenRange(
-            product.ean_normalized,
-            dateFrom,
-            currentDate
-          ),
-        ]);
-  
-        if (!inventory || !analytics.length) return;
-  
-        const totalOrderCount = analytics.reduce((sum, a) => sum + a.count, 0);
-        inventory.minimum_reorder_amount = totalOrderCount;
-        inventoryUpdates.push(inventory);
-      })
-    );
-  
+
+    for(const inventory of inventories){
+       const totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === inventory.product_ean))
+       if(totalOrderCount > 0){
+         inventory.minimum_reorder_amount = totalOrderCount;
+         inventoryUpdates.push(inventory);
+       }
+    }
+
     if (inventoryUpdates.length) {
       try {
         await this.inventoryRepository.save(inventoryUpdates);
@@ -85,7 +80,6 @@ export class InventorySyncService {
       }
     }
   }
-  
 
   getStockBalance(inventory: Inventory, availableStock: number) {
     const stock_balance = availableStock - inventory.number_of_book_items - inventory.stock_limit
