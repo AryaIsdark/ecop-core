@@ -74,7 +74,7 @@ export class InventorySyncService {
 
     if (inventoryUpdates.length) {
       try {
-        await this.inventoryRepository.save(inventoryUpdates);
+        return await this.inventoryRepository.save(inventoryUpdates);
       } catch (e) {
         console.error('Error saving inventory updates:', e);
       }
