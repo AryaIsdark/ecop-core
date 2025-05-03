@@ -61,7 +61,7 @@ export class InventorySyncService {
     const currentDate = new Date();
     const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
     const inventories = await this.inventoryRepository.find({where: {clientId: jobConfiguration.tenantId}})
-    const analytics = await this.productAnalyticRepository.find({where: { clientId: jobConfiguration.tenantId, createdAt: MoreThan(dateFrom) && LessThan(currentDate),  }})
+    const analytics = await this.productAnalyticRepository.find({where: { clientId: jobConfiguration.tenantId, createdAt: MoreThan(dateFrom)  }})
     const inventoryUpdates: Partial<Inventory>[] = [];
 
     for(const inventory of inventories){
