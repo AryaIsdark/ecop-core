@@ -111,7 +111,6 @@ export class InventorySyncService {
         // console.log(article, totalOrderCount)
       }
       const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
-      const newStockLimit = article.stockLimit === 1 ? 0 : article.stockLimit // this is temporary
       const inventory = new Inventory()
       inventory.minimum_reorder_amount = totalOrderCount
       inventory.clientId = clientId;
@@ -122,7 +121,7 @@ export class InventorySyncService {
       inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
-      inventory.stock_limit = article.stockLimit ?? 0// this is temporary
+      inventory.stock_limit = totalOrderCount ?? article.stockLimit ?? 0 // this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
       inventory.stock_need = availableStock - inventory.number_of_book_items -  inventory.stock_limit; 
       inventory.stock_balance = this.getStockBalance(inventory, availableStock);
