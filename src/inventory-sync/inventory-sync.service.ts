@@ -6,10 +6,10 @@ import { WarehouseManagementSystemsService } from 'src/warehouse-management-syst
 import { Inventory } from 'src/inventory/entities';
 import { WicsWmsConfig, WicsWmsConnectorService } from 'src/wics-wms-connector/wics-wms-connector.service';
 import { EcommercePlatformsService } from 'src/ecommerce-platforms';
-import { Product, ProductTrendingScore, ProductsService } from 'src/products';
+import { Product, ProductsService } from 'src/products';
 import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/shopify-connector.service';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
-import { ProductAnalytic, ProductAnalyticsService, TRENDING_RANGE } from 'src/product-analytics';
+import { ProductAnalytic, ProductAnalyticsService } from 'src/product-analytics';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, MoreThan, Repository } from 'typeorm';
 
@@ -57,6 +57,14 @@ export class InventorySyncService {
     return total
   }
 
+
+  async getOrderAnalytics(clientId: number) : Promise<ProductAnalytic[]> {
+    const currentDate = new Date();
+    const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return await this.productAnalyticRepository.find({where: { clientId, createdAt: MoreThan(dateFrom)  }}) 
+  }
+
+
   async handleAdjustStockMinimumReorder(jobConfiguration: JobConfiguration){
     const currentDate = new Date();
     const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -65,11 +73,14 @@ export class InventorySyncService {
     const inventoryUpdates: Partial<Inventory>[] = [];
 
     for(const inventory of inventories){
+       inventory.dynamic_stock_limit = inventory.stock_limit
        const totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === inventory.product_ean))
        if(totalOrderCount > 0){
-         inventory.minimum_reorder_amount = totalOrderCount;
+         inventory.minimum_reorder_amount = totalOrderCount; // remove this later (replaced with dynamic_stock_limit)
+         inventory.dynamic_stock_limit = totalOrderCount
          inventoryUpdates.push(inventory);
        }
+
     }
 
     if (inventoryUpdates.length) {
@@ -82,7 +93,7 @@ export class InventorySyncService {
   }
 
   getStockBalance(inventory: Inventory, availableStock: number) {
-    const stock_balance = availableStock - inventory.number_of_book_items - inventory.stock_limit
+    const stock_balance = availableStock - inventory.number_of_book_items - (inventory.dynamic_stock_limit ?? inventory.stock_limit)
     if (inventory.number_of_book_items > 0) {
       return stock_balance
     }
@@ -92,13 +103,18 @@ export class InventorySyncService {
 
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
     const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
-    let count = 0
+    const analytics = await this.getOrderAnalytics(clientId)
+
     const inventories: Partial<Inventory>[] = []
     for (const article of articles) {
-
+      const totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === article.articleNumber))
+      if(article.articleNumber === '0733739001054'){
+        // console.log(article, totalOrderCount)
+      }
       const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
       const newStockLimit = article.stockLimit === 1 ? 0 : article.stockLimit // this is temporary
       const inventory = new Inventory()
+      inventory.dynamic_stock_limit = totalOrderCount ?? 0
       inventory.clientId = clientId;
       inventory.article_number = article.articleNumber;
       inventory.product_ean = article.articleNumber;
@@ -109,7 +125,7 @@ export class InventorySyncService {
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
       inventory.stock_limit = article.stockLimit ?? 0// this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
-      inventory.stock_need = availableStock - inventory.number_of_book_items - inventory.stock_limit;
+      inventory.stock_need = availableStock - inventory.number_of_book_items - (inventory.dynamic_stock_limit ?? inventory.stock_limit); 
       inventory.stock_balance = this.getStockBalance(inventory, availableStock);
 
       inventories.push(inventory)
@@ -132,7 +148,7 @@ export class InventorySyncService {
       inventory.number_of_items = item.physical
       inventory.to_receive_number_of_items = item.announced
       inventory.actual_stock = item.nettoSalable + item.announced
-      inventory.stock_balance = inventory.actual_stock - inventory.stock_limit;
+      inventory.stock_balance = inventory.actual_stock - inventory.dynamic_stock_limit;
       inventories.push(inventory)
     }
 
@@ -249,7 +265,7 @@ export class InventorySyncService {
   }
 
   async handleWarehouseSyncInventoryJob(jobConfiguration: JobConfiguration) {
-    const { entityReferenceId, config, entityType, tenantId } = jobConfiguration
+    const { entityReferenceId, tenantId } = jobConfiguration
     const warehouseManagemenSystem = await this.warehouseManagementSystemsService.findOne(entityReferenceId)
 
     try {

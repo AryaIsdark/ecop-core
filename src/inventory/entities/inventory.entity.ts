@@ -33,6 +33,9 @@ export class Inventory extends BaseEntity {
   stock_limit: number;
 
   @Column({ nullable: true })
+  dynamic_stock_limit: number;
+
+  @Column({ nullable: true })
   actual_stock: number;
 
   @Column({ nullable: true })
