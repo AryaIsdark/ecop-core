@@ -114,7 +114,7 @@ export class InventorySyncService {
       const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
       const newStockLimit = article.stockLimit === 1 ? 0 : article.stockLimit // this is temporary
       const inventory = new Inventory()
-      inventory.dynamic_stock_limit = totalOrderCount ?? 0
+      inventory.dynamic_stock_limit = (totalOrderCount * 2) ?? 0
       inventory.clientId = clientId;
       inventory.article_number = article.articleNumber;
       inventory.product_ean = article.articleNumber;
