@@ -79,7 +79,7 @@ export class PurchaseOrderSuggestionsService {
     //   return inventory.minimum_reorder_amount 
     // }
 
-    return Math.abs(inventory.stock_balance)
+    return Math.abs(inventory.stock_balance + inventory.minimum_reorder_amount)
   }
 
   async upsert(params: Partial<UpserPurchaseOrderSuggestionDto>) {

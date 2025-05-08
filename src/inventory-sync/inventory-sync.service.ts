@@ -73,11 +73,10 @@ export class InventorySyncService {
     const inventoryUpdates: Partial<Inventory>[] = [];
 
     for(const inventory of inventories){
-       inventory.dynamic_stock_limit = inventory.stock_limit
+       inventory.minimum_reorder_amount = 0
        const totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === inventory.product_ean))
        if(totalOrderCount > 0){
          inventory.minimum_reorder_amount = totalOrderCount; // remove this later (replaced with dynamic_stock_limit)
-         inventory.dynamic_stock_limit = totalOrderCount
          inventoryUpdates.push(inventory);
        }
 
@@ -93,7 +92,7 @@ export class InventorySyncService {
   }
 
   getStockBalance(inventory: Inventory, availableStock: number) {
-    const stock_balance = availableStock - inventory.number_of_book_items - (inventory.dynamic_stock_limit ?? inventory.stock_limit)
+    const stock_balance = availableStock - inventory.number_of_book_items -  inventory.stock_limit
     if (inventory.number_of_book_items > 0) {
       return stock_balance
     }
@@ -114,7 +113,7 @@ export class InventorySyncService {
       const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
       const newStockLimit = article.stockLimit === 1 ? 0 : article.stockLimit // this is temporary
       const inventory = new Inventory()
-      inventory.dynamic_stock_limit = (totalOrderCount * 2) ?? 0
+      inventory.minimum_reorder_amount = totalOrderCount
       inventory.clientId = clientId;
       inventory.article_number = article.articleNumber;
       inventory.product_ean = article.articleNumber;
@@ -125,7 +124,7 @@ export class InventorySyncService {
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
       inventory.stock_limit = article.stockLimit ?? 0// this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
-      inventory.stock_need = availableStock - inventory.number_of_book_items - (inventory.dynamic_stock_limit ?? inventory.stock_limit); 
+      inventory.stock_need = availableStock - inventory.number_of_book_items -  inventory.stock_limit; 
       inventory.stock_balance = this.getStockBalance(inventory, availableStock);
 
       inventories.push(inventory)
@@ -148,7 +147,7 @@ export class InventorySyncService {
       inventory.number_of_items = item.physical
       inventory.to_receive_number_of_items = item.announced
       inventory.actual_stock = item.nettoSalable + item.announced
-      inventory.stock_balance = inventory.actual_stock - inventory.dynamic_stock_limit;
+      inventory.stock_balance = inventory.actual_stock - inventory.stock_limit;
       inventories.push(inventory)
     }
 

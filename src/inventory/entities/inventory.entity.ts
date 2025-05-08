@@ -49,6 +49,7 @@ export class Inventory extends BaseEntity {
 
   @Column({ nullable: true })
   minimum_reorder_amount: number;
+
 }
 
 export type InventoryQueryParams = {
