@@ -57,6 +57,8 @@ export class PurchaseOrderSuggestionsService {
       }
 
       if (matchProduct?.supplierId === supplierId) {
+        const suggestedQuantity = this.suggestPurchaseOrderCandidateQuantity(inventory)
+        const quantity = suggestedQuantity < Number(matchProduct.stock) ? suggestedQuantity : matchProduct.stock 
         const suggestion: UpserPurchaseOrderSuggestionDto = {
           id: matchProduct.id,
           product_ean: matchProduct.ean_normalized,
@@ -79,7 +81,7 @@ export class PurchaseOrderSuggestionsService {
     //   return inventory.minimum_reorder_amount 
     // }
 
-    return Math.abs(inventory.stock_balance ) + inventory.minimum_reorder_amount
+    return Math.abs(inventory.stock_balance )
   }
 
   async upsert(params: Partial<UpserPurchaseOrderSuggestionDto>) {
