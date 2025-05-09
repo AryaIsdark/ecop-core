@@ -58,9 +58,9 @@ export class InventorySyncService {
   }
 
 
-  async getOrderAnalytics(clientId: number) : Promise<ProductAnalytic[]> {
+  async getOrderAnalytics(clientId: number, analyticsRangeInDays: number) : Promise<ProductAnalytic[]> {
     const currentDate = new Date();
-    const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const dateFrom = new Date(currentDate.getTime() - analyticsRangeInDays * 24 * 60 * 60 * 1000);
     return await this.productAnalyticRepository.find({where: { clientId, createdAt: MoreThan(dateFrom)  }}) 
   }
 
@@ -100,17 +100,32 @@ export class InventorySyncService {
     return 0
   }
 
+  getStockLimitForItem(params: { forecastPerDay: number; leadTimeInDays: number; safetyStockInPercentage: number }) {
+    const base_stock = params.forecastPerDay * params.leadTimeInDays;
+    const stock_limit = base_stock + (base_stock * params.safetyStockInPercentage); // safety_stock is a percentage
+    return Math.ceil(stock_limit);
+  }
+  
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
-    const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
-    const analytics = await this.getOrderAnalytics(clientId)
+    try{
 
+    
+    const  {analyticsRangeInDays, leadTimeInDays, safetyStockInPercentage } = config.stockLimitAutomation
+
+    const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
+    const analytics = await this.getOrderAnalytics(clientId, analyticsRangeInDays)
+    
     const inventories: Partial<Inventory>[] = []
     for (const article of articles) {
       const totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === article.articleNumber))
-      if(article.articleNumber === '0733739001054'){
-        // console.log(article, totalOrderCount)
+      const forecastPerDay = totalOrderCount / analyticsRangeInDays
+      let stockLimit_auto = 0
+      if(totalOrderCount > 0){
+        console.log('hey', article)
+        stockLimit_auto = this.getStockLimitForItem({forecastPerDay, leadTimeInDays, safetyStockInPercentage  })
       }
       const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
+      
       const inventory = new Inventory()
       inventory.minimum_reorder_amount = totalOrderCount
       inventory.clientId = clientId;
@@ -121,7 +136,7 @@ export class InventorySyncService {
       inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
-      inventory.stock_limit = totalOrderCount ?? article.stockLimit ?? 0 // this is temporary
+      inventory.stock_limit = stockLimit_auto ?? article.stockLimit ?? 0 // this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
       inventory.stock_need = availableStock - inventory.number_of_book_items -  inventory.stock_limit; 
       inventory.stock_balance = this.getStockBalance(inventory, availableStock);
@@ -130,6 +145,9 @@ export class InventorySyncService {
     }
 
     this.inventoryService.upserInventory(clientId, inventories as Inventory[])
+  }catch(e){
+    console.log(e)
+  }
   }
 
   async handleSyncWicsWmsInventory(config: WicsWmsConfig, clientId) {

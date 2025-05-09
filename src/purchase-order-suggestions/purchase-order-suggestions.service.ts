@@ -66,7 +66,7 @@ export class PurchaseOrderSuggestionsService {
           quantity: this.suggestPurchaseOrderCandidateQuantity(inventory),
           clientId: clientId,
         }
-
+        
         suggestions.push(suggestion)
       }
 

@@ -8,7 +8,12 @@ import { Supplier } from 'src/suppliers';
 export interface OngoingWmsConfig {
   apiBaseUrl: string,
   goodsOwnerId: number,
-  authorization: string
+  authorization: string, 
+  stockLimitAutomation: {
+    analyticsRangeInDays: number,
+    leadTimeInDays : number,
+     safetyStockInPercentage : number
+  }
 }
 
 @Injectable()
