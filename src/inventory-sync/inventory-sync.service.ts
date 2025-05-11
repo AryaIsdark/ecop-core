@@ -121,7 +121,6 @@ export class InventorySyncService {
       const forecastPerDay = totalOrderCount / analyticsRangeInDays
       let stockLimit_auto = 0
       if(totalOrderCount > 0){
-        console.log('hey', article)
         stockLimit_auto = this.getStockLimitForItem({forecastPerDay, leadTimeInDays, safetyStockInPercentage  })
       }
       const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
@@ -136,7 +135,7 @@ export class InventorySyncService {
       inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
-      inventory.stock_limit = stockLimit_auto ?? article.stockLimit ?? 0 // this is temporary
+      inventory.stock_limit = stockLimit_auto ?? article.inventoryInfo.stockLimit ?? 0 // this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
       inventory.stock_need = availableStock - inventory.number_of_book_items -  inventory.stock_limit; 
       inventory.stock_balance = this.getStockBalance(inventory, availableStock);
