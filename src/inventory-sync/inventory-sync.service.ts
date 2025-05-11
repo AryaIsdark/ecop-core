@@ -117,6 +117,9 @@ export class InventorySyncService {
     
     const inventories: Partial<Inventory>[] = []
     for (const article of articles) {
+      if(article.articleNumber === '5903246229219'){
+        console.log(article)
+      }
       const totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === article.articleNumber))
       const forecastPerDay = totalOrderCount / analyticsRangeInDays
       let stockLimit_auto = 0
@@ -124,8 +127,12 @@ export class InventorySyncService {
         stockLimit_auto = this.getStockLimitForItem({forecastPerDay, leadTimeInDays, safetyStockInPercentage  })
       }
       const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
-      
       const inventory = new Inventory()
+
+      inventory.stock_limit = article.stockLimit ?? 0
+      if(stockLimit_auto > 0){
+        inventory.stock_limit = stockLimit_auto
+      }
       inventory.minimum_reorder_amount = totalOrderCount
       inventory.clientId = clientId;
       inventory.article_number = article.articleNumber;
@@ -135,7 +142,6 @@ export class InventorySyncService {
       inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems
       inventory.number_of_items = article.inventoryInfo.numberOfItems
       inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
-      inventory.stock_limit = stockLimit_auto ?? article.inventoryInfo.stockLimit ?? 0 // this is temporary
       inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
       inventory.stock_need = availableStock - inventory.number_of_book_items -  inventory.stock_limit; 
       inventory.stock_balance = this.getStockBalance(inventory, availableStock);
