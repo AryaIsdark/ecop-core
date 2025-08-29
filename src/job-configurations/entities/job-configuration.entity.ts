@@ -3,6 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 export enum JobActionType {
   SyncProducts = 'sync-products',
   SyncPurchaseOrders = 'sync-purchase-orders',
+  SyncKachingSubscriptionBillingCycles='sync-kaching-subscription-billing-cycles',
   SyncOrders = 'sync-orders',
   SyncInventory = 'sync-inventory',
   SyncCustomers = 'sync-customers',

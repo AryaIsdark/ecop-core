@@ -11,7 +11,8 @@ import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/sh
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 import { ProductAnalytic, ProductAnalyticsService } from 'src/product-analytics';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, MoreThan, Repository } from 'typeorm';
+import { Between, MoreThan, Repository } from 'typeorm';
+import { KachingSubscriptionBillingCycle } from 'src/kaching-subscriptions-connector/entities/kachin-subscription.entity';
 
 export type InventoryStockSuggestion = {
   product_ean: string,
@@ -43,7 +44,9 @@ export class InventorySyncService {
     private readonly wicsWmsConnectorService: WicsWmsConnectorService,
     private readonly ecommercePlatformService: EcommercePlatformsService,
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService,
-    private readonly productAnalyticService : ProductAnalyticsService
+    private readonly productAnalyticService : ProductAnalyticsService,
+    @InjectRepository(KachingSubscriptionBillingCycle)
+    private readonly kachingSubscriptionBillingCycleRepo :Repository<KachingSubscriptionBillingCycle>
     
     ) {
   }
@@ -91,10 +94,14 @@ export class InventorySyncService {
     }
   }
 
-  getStockBalance(inventory: Inventory, availableStock: number) {
-    const stock_balance = availableStock - inventory.number_of_book_items -  inventory.stock_limit
+  getStockBalance(inventory: Inventory, availableStock: number, subscriptionQuantity: number) {
+    const stock_balance = availableStock - inventory.number_of_book_items -  inventory.stock_limit - subscriptionQuantity
     if (inventory.number_of_book_items > 0) {
       return stock_balance
+    }
+
+    if(subscriptionQuantity > 0){
+      return subscriptionQuantity
     }
 
     return 0
@@ -105,54 +112,96 @@ export class InventorySyncService {
     const stock_limit = base_stock + (base_stock * params.safetyStockInPercentage); // safety_stock is a percentage
     return Math.ceil(stock_limit);
   }
+
+  getAggregatedProductDemandFromSubscriptions(subscriptions) {
+    const subscriptionDemandMap = new Map();
+    for (const sub of subscriptions) {
+        const current = subscriptionDemandMap.get(sub.sku) ?? 0;
+        subscriptionDemandMap.set(sub.sku, current + sub.quantity);
+    }
+    return subscriptionDemandMap;
+}
+
+  async getSubscriptionDemands(tenantId: number, rangeIndDays: number){
+    const subscriptions = await this.kachingSubscriptionBillingCycleRepo.find({
+      where: {
+        tenantId,
+        billingAttemptExpectedDate: Between(
+          new Date(), // today
+          new Date(Date.now() + rangeIndDays * 24 * 60 * 60 * 1000), // forecast window
+        ),
+        skipped: false,
+      },
+    });
+
+    return this.getAggregatedProductDemandFromSubscriptions(subscriptions)
+  }
   
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
-    try{
+    try{ 
 
+      const  { analyticsRangeInDays, leadTimeInDays, safetyStockInPercentage } = config.stockLimitAutomation
+
+      const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
+      const analytics = await this.getOrderAnalytics(clientId, analyticsRangeInDays)
+      let subscriptionDemands = null
+      
+      if (config.kachingSubscriptionOptions){
+        subscriptionDemands = await this.getSubscriptionDemands(clientId, config.kachingSubscriptionOptions.forcastWindowInDays)
+      }
     
-    const  {analyticsRangeInDays, leadTimeInDays, safetyStockInPercentage } = config.stockLimitAutomation
+      const inventories: Partial<Inventory>[] = []
+      
+      for (const article of articles) {
+        if ( article.articleNumber === '5902837741031'){
+            console.log(article)
+        }
+      
+        let subscriptionQty = 0
+        let stockLimit_auto = 0
+        let totalOrderCount = 0
+      
+        if (config.kachingSubscriptionOptions){
+          subscriptionQty =  subscriptionDemands.get(article.articleNumber) ?? 0;
+        }
 
-    const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
-    const analytics = await this.getOrderAnalytics(clientId, analyticsRangeInDays)
-    
-    const inventories: Partial<Inventory>[] = []
-    for (const article of articles) {
-      if(article.articleNumber === '5903246229219'){
-        console.log(article)
-      }
-      const totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === article.articleNumber))
-      const forecastPerDay = totalOrderCount / analyticsRangeInDays
-      let stockLimit_auto = 0
-      if(totalOrderCount > 0){
-        stockLimit_auto = this.getStockLimitForItem({forecastPerDay, leadTimeInDays, safetyStockInPercentage  })
-      }
-      const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
-      const inventory = new Inventory()
+        totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === article.articleNumber))
+        const forecastPerDay = totalOrderCount / analyticsRangeInDays
 
-      inventory.stock_limit = article.stockLimit ?? 0
-      if(stockLimit_auto > 0){
-        inventory.stock_limit = stockLimit_auto
-      }
-      inventory.minimum_reorder_amount = totalOrderCount
-      inventory.clientId = clientId;
-      inventory.article_number = article.articleNumber;
-      inventory.product_ean = article.articleNumber;
-      inventory.product_sku = article.articleNumber;
-      inventory.sellable_number_of_items = article.inventoryInfo.sellableNumberOfItems
-      inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems
-      inventory.number_of_items = article.inventoryInfo.numberOfItems
-      inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
-      inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
-      inventory.stock_need = availableStock - inventory.number_of_book_items -  inventory.stock_limit; 
-      inventory.stock_balance = this.getStockBalance(inventory, availableStock);
+        if(totalOrderCount > 0){
+          stockLimit_auto = this.getStockLimitForItem({forecastPerDay, leadTimeInDays, safetyStockInPercentage })
+        }
+        
+        const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
+        const inventory = new Inventory()
 
-      inventories.push(inventory)
-    }
+        inventory.stock_limit = article.stockLimit ?? 0
+
+        if(stockLimit_auto > 0){
+          inventory.stock_limit = stockLimit_auto
+        }
+
+        inventory.minimum_reorder_amount = totalOrderCount
+        inventory.clientId = clientId;
+        inventory.article_number = article.articleNumber;
+        inventory.product_ean = article.articleNumber;
+        inventory.product_sku = article.articleNumber;
+        inventory.sellable_number_of_items = article.inventoryInfo.sellableNumberOfItems
+        inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems
+        inventory.number_of_items = article.inventoryInfo.numberOfItems
+        inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
+        inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
+        inventory.stock_need = availableStock - inventory.number_of_book_items -  inventory.stock_limit; 
+        inventory.stock_balance = this.getStockBalance(inventory, availableStock, subscriptionQty);
+
+        inventories.push(inventory)
+      }
 
     this.inventoryService.upserInventory(clientId, inventories as Inventory[])
-  }catch(e){
-    console.log(e)
-  }
+
+    } catch(e){
+     console.log(e)
+    }
   }
 
   async handleSyncWicsWmsInventory(config: WicsWmsConfig, clientId) {
