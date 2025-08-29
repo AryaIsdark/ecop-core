@@ -9,6 +9,7 @@ import { JobConfigurationsModule } from 'src/job-configurations';
 import { InventorySyncModule } from 'src/inventory-sync/inventory-sync.module';
 import { WebAutomationsModule } from 'src/web-automations/web-automations.module';
 import { ProductAnalyticsModule } from 'src/product-analytics';
+import { KachingSubscriptionsConnectorModule } from 'src/kaching-subscriptions-connector/kaching-subscriptions-connector.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Job]),
@@ -19,6 +20,7 @@ import { ProductAnalyticsModule } from 'src/product-analytics';
     InventorySyncModule,
     WebAutomationsModule,
     ProductAnalyticsModule,
+    KachingSubscriptionsConnectorModule,
   ],
   providers: [JobProcessorService],
   exports: [JobProcessorService]

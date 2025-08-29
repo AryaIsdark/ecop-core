@@ -11,6 +11,7 @@ import { PurchaseOrderSyncService } from 'src/purchase-order-sync/purchase-order
 import { Job, JobStatus } from 'src/jobs';
 import { ProductAnalyticsService } from 'src/product-analytics';
 import axios from 'axios';
+import { KachingSubscriptionsConnectorService } from 'src/kaching-subscriptions-connector/kaching-subscriptions-connector.service';
 
 @Injectable()
 export class JobProcessorService {
@@ -25,6 +26,7 @@ export class JobProcessorService {
         private readonly inventorySyncService: InventorySyncService,
         private readonly webAutomationService: WebAutomationsService,
         private readonly productAnalyticsService: ProductAnalyticsService,
+        private readonly kachingSubscriptionsConnectorService : KachingSubscriptionsConnectorService,
     ) {
 
     }
@@ -50,6 +52,9 @@ export class JobProcessorService {
             }
             if (jobConfiguration.actionType === JobActionType.SyncProducts) {
                 await this.productSyncService.handleSyncProductJob(jobConfiguration)
+            }
+            if (jobConfiguration.actionType === JobActionType.SyncKachingSubscriptionBillingCycles) {
+                await this.kachingSubscriptionsConnectorService.handleSyncKachingSubscriptionBillingCyclesJob(jobConfiguration)
             }
             if (jobConfiguration.actionType === JobActionType.SyncOrders) {
                 await this.orderSyncService.handleSyncOrderJob(jobConfiguration)

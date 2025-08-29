@@ -12,6 +12,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { ProductMediaModule } from './product-media/product-media.module';
 import { ProductCategoriesModule } from './product-categories/product-categories.module';
 import { JobProcessorModule } from './job-processor/job-processor.module';
+import { KachingSubscriptionsConnectorModule } from './kaching-subscriptions-connector/kaching-subscriptions-connector.module';
 
 export interface CoreModuleOptions {
   dataSourceOptions: DataSourceOptions;
@@ -20,7 +21,16 @@ export interface CoreModuleOptions {
 
 @Global()
 @Module({
-  imports: [UserSettingsModule, ProductDescriptionModule, OpenaiModule, SubscriptionsModule, ProductMediaModule, ProductCategoriesModule, JobProcessorModule], // Include necessary modules
+  imports: [
+    UserSettingsModule,
+    ProductDescriptionModule,
+    OpenaiModule,
+    SubscriptionsModule,
+    ProductMediaModule,
+    ProductCategoriesModule,
+    JobProcessorModule,
+    KachingSubscriptionsConnectorModule,
+  ], 
   providers: [],
 })
 export class CoreModule {
@@ -40,7 +50,7 @@ export class CoreModule {
           password: dataSourceOptions['password'],
           database: dataSourceOptions['database'],
           entities: dataSourceOptions['entities'],
-          migrations: dataSourceOptions['migrations']
+          migrations: dataSourceOptions['migrations'],
         } as DataSourceOptions),
       ],
       controllers: [AppController],

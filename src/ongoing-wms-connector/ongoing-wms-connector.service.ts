@@ -4,6 +4,7 @@ import { UpdateOngoingWmsConnectorDto } from './dto/update-ongoing-wms-connector
 import axios from 'axios';
 import { CreatePurchaseOrderDto } from 'src/purchase-orders';
 import { Supplier } from 'src/suppliers';
+import { KachingSubscriptionOptions } from 'src/kaching-subscriptions-connector/entities/kachin-subscription.entity';
 
 export interface OngoingWmsConfig {
   apiBaseUrl: string,
@@ -12,8 +13,9 @@ export interface OngoingWmsConfig {
   stockLimitAutomation: {
     analyticsRangeInDays: number,
     leadTimeInDays : number,
-     safetyStockInPercentage : number
+    safetyStockInPercentage : number
   }
+  kachingSubscriptionOptions?: KachingSubscriptionOptions
 }
 
 @Injectable()

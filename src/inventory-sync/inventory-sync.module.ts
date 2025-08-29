@@ -9,11 +9,17 @@ import { ShopifyConnectorModule } from 'src/shopify-connector/shopify-connector.
 import { Product, ProductsModule } from 'src/products';
 import { ProductAnalytic, ProductAnalyticsModule } from 'src/product-analytics';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Inventory } from 'src/inventory/entities';
+import { Inventory } from 'src/inventory/entities'
+import { KachingSubscriptionBillingCycle } from 'src/kaching-subscriptions-connector/entities/kachin-subscription.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Inventory, Product, ProductAnalytic]),
+    TypeOrmModule.forFeature([
+      Inventory,
+      Product,
+      ProductAnalytic,
+      KachingSubscriptionBillingCycle,
+    ]),
     ProductsModule,
     ShopifyConnectorModule,
     InventoryModule,
@@ -23,8 +29,8 @@ import { Inventory } from 'src/inventory/entities';
     OngoingWmsConnectorModule,
     WicsWmsConnectorModule,
     ProductAnalyticsModule,
-    ],
+  ],
   providers: [InventorySyncService],
-  exports: [InventorySyncService]
+  exports: [InventorySyncService],
 })
-export class InventorySyncModule { }
+export class InventorySyncModule {}
