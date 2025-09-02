@@ -4,7 +4,7 @@ import axios from 'axios';
 import { JobConfiguration } from 'src/job-configurations';
 import { Repository } from 'typeorm';
 import { KachingSubscriptionBillingCycle } from './entities/kachin-subscription.entity';
-import { KachinSubscriptionApiResponse } from './entities/kaching-subscription-api-response';
+import { KachingSubscriptionBillingCyclesApiResponse, KachingSubscriptionContract, KachingUpcomingBillingCycle } from './entities/kaching-subscription-api-response';
 
 @Injectable()
 export class KachingSubscriptionsConnectorService {
@@ -13,21 +13,51 @@ export class KachingSubscriptionsConnectorService {
     private readonly repo: Repository<KachingSubscriptionBillingCycle>,
   ) {}
 
-  async fetchData(
-    jobConfiguration: JobConfiguration,
-  ): Promise<KachinSubscriptionApiResponse[]> {
+
+  async healthCheck(jobConfiguration: JobConfiguration) {
     const { config } = jobConfiguration;
     const { api_url, access_token } = config;
     const headers =  { 'Content-Type': 'application/json',  Authorization: `Bearer ${access_token}`}
-
+    let isHealthy = false;
     try {
       const response = await axios.get( api_url, { headers });
-      return response.data.result;
 
-    } catch (error) {
-      console.error('Failed to fetch external subscriptions:', error.message);
-      throw new Error('Failed to fetch external subscriptions');
+      if (response.data) {
+        isHealthy = true
+      }
     }
+    catch (e) {
+      console.error('Kaching API is currently not  healthy.')
+    }
+
+    return isHealthy
+  }
+
+  async fetchData(jobConfiguration: JobConfiguration): Promise<KachingSubscriptionContract[]> {
+    const { config } = jobConfiguration;
+    const { api_url, access_token } = config;
+
+    let allResults : KachingSubscriptionContract[] = []
+    let hasNextPage = true 
+    let nextCursor = undefined
+
+    const isHealthy = await this.healthCheck(jobConfiguration)
+
+    if(!isHealthy){
+      throw new Error('Kaching API is currently not  healthy.')
+    }
+
+    const headers =  { 'Content-Type': 'application/json',  Authorization: `Bearer ${access_token}`}
+
+    while(hasNextPage){
+      const nextApiUrl = nextCursor ? `${api_url}?cursor=${nextCursor}` : api_url;
+      const response = await axios.get<KachingSubscriptionBillingCyclesApiResponse>(nextApiUrl, { headers });
+      allResults = [...allResults, ...response.data.result];
+      hasNextPage = response.data.hasNextPage;
+      nextCursor = response.data.cursor ?? undefined;
+    }
+
+    return allResults
   }
 
   async handleSyncKachingSubscriptionBillingCyclesJob(jobConfiguration: JobConfiguration) {
