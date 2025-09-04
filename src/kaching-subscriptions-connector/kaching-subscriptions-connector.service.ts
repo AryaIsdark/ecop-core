@@ -4,7 +4,8 @@ import axios from 'axios';
 import { JobConfiguration } from 'src/job-configurations';
 import { Repository } from 'typeorm';
 import { KachingSubscriptionBillingCycle } from './entities/kachin-subscription.entity';
-import { KachingSubscriptionBillingCyclesApiResponse, KachingSubscriptionContract, KachingUpcomingBillingCycle } from './entities/kaching-subscription-api-response';
+import { KachingSubscriptionBillingCyclesApiResponse, KachingSubscriptionContract } from './entities/kaching-subscription-api-response';
+import { delay } from '../utils/delay/delay';
 
 @Injectable()
 export class KachingSubscriptionsConnectorService {
@@ -55,6 +56,7 @@ export class KachingSubscriptionsConnectorService {
       allResults = [...allResults, ...response.data.result];
       hasNextPage = response.data.hasNextPage;
       nextCursor = response.data.cursor ?? undefined;
+      await delay(2000);
     }
 
     return allResults
