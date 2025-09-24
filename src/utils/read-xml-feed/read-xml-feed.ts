@@ -1,4 +1,5 @@
 import axios from 'axios';
+import https from 'https';
 import { Product } from 'src/products';
 import { DOMParser } from 'xmldom';
 import * as xpath from 'xpath';
@@ -11,7 +12,10 @@ export const normalizePrice = (price: string) => {
   return Number(price.replace(',', '.').trim());
 };
 
-export const getPrice = (discountInPercentage: number, originalPrice: number) => {
+export const getPrice = (
+  discountInPercentage: number,
+  originalPrice: number,
+) => {
   if (!discountInPercentage) {
     return originalPrice;
   }
@@ -26,11 +30,19 @@ export async function getProductsFromXML(
   url: string,
   initialNode: string,
   mappingKeys: MappingKeys,
-  discountInPercentage: number
+  discountInPercentage: number,
 ): Promise<Partial<Product>[]> {
   try {
+    // temporarily disable ssl
+    const agent = new https.Agent({
+      rejectUnauthorized: false,
+    });
     // Fetch the XML content from the URL
-    const response = await axios.get(url, { responseType: 'text' });
+    const response = await axios.get(url, {
+      httpsAgent: agent,
+      responseType: 'text',
+    });
+
     const xmlString = response.data;
 
     // Parse the XML string using xmldom
@@ -38,7 +50,10 @@ export async function getProductsFromXML(
     const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
 
     // Function to get text content by XPath and trim it
-    function getTextContentByXPath(xpathExpr: string, contextNode: Node): string {
+    function getTextContentByXPath(
+      xpathExpr: string,
+      contextNode: Node,
+    ): string {
       const nodes = xpath.select(xpathExpr, contextNode) as Node[];
       return nodes.length > 0 ? nodes[0].textContent?.trim() || '' : '';
     }
@@ -69,7 +84,7 @@ export async function getProductsFromXML(
         ...product,
         price: getPrice(
           discountInPercentage,
-          normalizePrice(product.price as unknown as string)
+          normalizePrice(product.price as unknown as string),
         ),
       });
     }
