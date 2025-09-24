@@ -1,5 +1,5 @@
 import axios from 'axios';
-import https from 'https';
+import * as https from 'https';
 import { Product } from 'src/products';
 import { DOMParser } from 'xmldom';
 import * as xpath from 'xpath';
