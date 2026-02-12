@@ -3,7 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 export enum JobActionType {
   SyncProducts = 'sync-products',
   SyncPurchaseOrders = 'sync-purchase-orders',
-  SyncKachingSubscriptionBillingCycles='sync-kaching-subscription-billing-cycles',
+  SyncKachingSubscriptionBillingCycles = 'sync-kaching-subscription-billing-cycles',
   SyncOrders = 'sync-orders',
   SyncInventory = 'sync-inventory',
   SyncCustomers = 'sync-customers',
@@ -11,7 +11,8 @@ export enum JobActionType {
   SyncProductImages = 'sync-product-images',
   MarkTrendingProducts = 'mark-trending-products',
   AdjustStockMinimumReorder = 'adjust-stock-minimum-reorder',
-  PingService = 'ping-service'
+  PingService = 'ping-service',
+  SyncInventoryItems = 'sync-inventory-items',
 }
 
 export enum EntityType {
@@ -19,7 +20,7 @@ export enum EntityType {
   supplier = 'supplier',
   warehouseManagemenSystem = 'warehouse-management-system',
   order = 'order',
-  ecommercePlatform = 'ecommerce-platform'
+  ecommercePlatform = 'ecommerce-platform',
 }
 
 @Entity()
@@ -34,32 +35,30 @@ export class JobConfiguration {
   syncType: string;
 
   @Column()
-  entityType: EntityType
+  entityType: EntityType;
 
   @Column({ nullable: true, type: 'jsonb' })
   config: Record<string, any>;
 
   @Column()
-  entityReferenceId: number
+  entityReferenceId: number;
 
   @Column({ nullable: true })
-  tenantId: number
+  tenantId: number;
 
   @Column({ nullable: true })
   cronExpression: string;
 
   @Column({ nullable: true })
   description: string;
-
 }
-
 
 export type JobConfigurationsSearchParams = {
-  pageNumber?: number,
-  pageSize?: number,
-  tenantId?: number,
-  entityReferenceId?: number,
-  actionType?: JobActionType,
-  syncType?: string,
-  entityType?: EntityType
-}
+  pageNumber?: number;
+  pageSize?: number;
+  tenantId?: number;
+  entityReferenceId?: number;
+  actionType?: JobActionType;
+  syncType?: string;
+  entityType?: EntityType;
+};

@@ -9,12 +9,21 @@ import { readWebApiFeed } from 'src/utils/read-webapi-feed/read-webapi-feed';
 import { isDateValidByShelfLife } from 'src/utils/is-date-valid-by-shelf-life/is-date-valid-by-shelf-life';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 import { normalizeDate } from 'src/utils/normalize-date/normalize-date';
+import { EcommercePlatformsService } from 'src/ecommerce-platforms';
+import {
+  ShopifyConfig,
+  ShopifyConnectorService,
+} from 'src/shopify-connector/shopify-connector.service';
+import { ClientsService } from 'src/clients';
 
 @Injectable()
 export class ProductSyncService {
   constructor(
     private readonly productsService: ProductsService,
+    private readonly clientsService: ClientsService,
     private readonly productMediaService: ProductMediaService,
+    private readonly ecommercePlatformService: EcommercePlatformsService,
+    private readonly shopifyConnectorService: ShopifyConnectorService,
   ) {}
 
   normalizeProducts(products: Partial<Product>[]): Partial<Product>[] {
@@ -181,5 +190,26 @@ export class ProductSyncService {
 
     return true;
   }
- 
+
+  async handleSyncStoreProductJob(jobConfiguration: JobConfiguration) {
+    const { entityReferenceId, tenantId, config } = jobConfiguration;
+    const tenant = await this.clientsService.findOne(tenantId);
+    const products = await this.productsService.getClientProducts(tenantId);
+    const ecommercePlatform =
+      await this.ecommercePlatformService.findOne(entityReferenceId);
+
+    try {
+      if (ecommercePlatform.name === 'shopify') {
+        await this.shopifyConnectorService.syncInventoryItems(
+          config as ShopifyConfig,
+          products,
+          tenant,
+        );
+      }
+    } catch (e) {
+      throw e;
+    }
+
+    return true;
+  }
 }

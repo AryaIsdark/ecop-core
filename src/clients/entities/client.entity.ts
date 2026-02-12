@@ -1,5 +1,6 @@
 import { BaseEntity } from 'src/base/base-entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne } from 'typeorm';
+import { EcommercePlatform } from 'src/ecommerce-platforms/entities/ecommerce-platform.entity';
 
 @Entity()
 export class Client extends BaseEntity {
@@ -21,6 +22,9 @@ export class Client extends BaseEntity {
   @Column()
   logo: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   subscriptionId: number;
+
+  @Column({ nullable: true })
+  store_currency: string;
 }

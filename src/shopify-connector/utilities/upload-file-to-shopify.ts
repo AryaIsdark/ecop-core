@@ -1,14 +1,18 @@
-import path from "path";
-import fs from 'fs'
-import FormData from "form-data";
-import axios from "axios";
-import { ShopifyConfig } from "../shopify-connector.service";
-import { initializeShopify } from "./initialize-shopify";
+import * as path from 'path';
+import * as fs from 'fs';
+import * as FormData from 'form-data';
+import axios from 'axios';
 
-export const uploadFileToShopify = async(shopifyConfig: ShopifyConfig,  fileName: string, fileSize: number) => {
+import { initializeShopify } from './initialize-shopify';
+import { ShopifyConfig } from '../shopify-connector.service';
 
-    const shopify = await initializeShopify(shopifyConfig)
-    const mutation = `
+export const uploadFileToShopify = async (
+  shopifyConfig: ShopifyConfig,
+  fileName: string,
+  fileSize: number,
+) => {
+  const shopify = await initializeShopify(shopifyConfig);
+  const mutation = `
           mutation {
             stagedUploadsCreate(input: {
                 fileSize: "${fileSize}" 
@@ -29,45 +33,46 @@ export const uploadFileToShopify = async(shopifyConfig: ShopifyConfig,  fileName
           }
         `;
 
-    const response = await shopify.graphql(mutation)
+  const response = await shopify.graphql(mutation, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-    const { url, parameters, resourceUrl } = response.stagedUploadsCreate.stagedTargets[0];
-    let uploadUrl = ''
-    const formData = new FormData();
-    parameters.forEach((param: any) => {
-        formData.append(param.name, param.value);
-        if (param.name === 'key') {
-            uploadUrl = resourceUrl + param.value
-        }
-    });
-
-    const rootFolder = process.cwd();
-
-    const filePath = path.join(rootFolder, fileName);
-    const file = fs.createReadStream(filePath)
-
-    formData.append('file', file);
-
-    try {
-
-        const uploadResponse = await axios.post(url, formData, {
-            headers: {
-                ...formData.getHeaders(),
-                'X-Shopify-Access-Token': shopifyConfig.accessToken ?? ''
-            }
-
-        });
-        if (!uploadResponse.data) {
-            const error = await uploadResponse.data
-            throw new Error('File upload failed');
-        }
-
-        return { url, resourceUrl, uploadUrl };
+  const { url, parameters, resourceUrl } =
+    response.stagedUploadsCreate.stagedTargets[0];
+  let uploadUrl = '';
+  const formData = new FormData();
+  parameters.forEach((param: any) => {
+    formData.append(param.name, param.value);
+    if (param.name === 'key') {
+      uploadUrl = resourceUrl + param.value;
     }
+  });
 
-    catch (e) {
-        console.error(e)
+  const rootFolder = process.cwd();
+
+  const filePath = path.join(rootFolder, fileName);
+  const file = fs.createReadStream(filePath);
+
+  formData.append('file', file);
+
+  try {
+    const uploadResponse = await axios.post(url, formData, {
+      headers: {
+        ...formData.getHeaders(),
+        'X-Shopify-Access-Token': shopifyConfig.accessToken ?? '',
+      },
+    });
+    if (!uploadResponse.data) {
+      const error = await uploadResponse.data;
+      throw new Error('File upload failed');
     }
 
     return { url, resourceUrl, uploadUrl };
+  } catch (e) {
+    console.error(e);
+  }
+
+  return { url, resourceUrl, uploadUrl };
 };
