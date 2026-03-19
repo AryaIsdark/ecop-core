@@ -107,6 +107,7 @@ export class ProductSyncService {
         productMappingKeys,
         responsePath,
         discountInPercentage,
+        originalCurrency,
       } = config;
 
       const data = await getProductsFromXML(
@@ -114,6 +115,7 @@ export class ProductSyncService {
         responsePath,
         productMappingKeys,
         discountInPercentage,
+        originalCurrency,
       );
       await this.handleSyncProducts(
         tenantId,

@@ -1,4 +1,4 @@
-export type CurrencyCode = 'EUR' | 'USD' | 'SEK' | 'GBP';
+export type CurrencyCode = 'EUR' | 'USD' | 'SEK' | 'GBP' | 'PLN';
 
 export function convertCurrency(
   amount: number,
@@ -12,6 +12,7 @@ export function convertCurrency(
     USD: 1.08,
     SEK: 11.2,
     GBP: 0.85,
+    PLN: 4.3,
   };
 
   if (from === to) return amount;

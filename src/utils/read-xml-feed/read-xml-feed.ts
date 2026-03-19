@@ -3,6 +3,10 @@ import * as https from 'https';
 import { Product } from 'src/products';
 import { DOMParser } from 'xmldom';
 import * as xpath from 'xpath';
+import {
+  convertCurrency,
+  CurrencyCode,
+} from 'src/utils/convert-currency/convert-currency';
 
 interface MappingKeys {
   [key: string]: string;
@@ -15,15 +19,23 @@ export const normalizePrice = (price: string) => {
 export const getPrice = (
   discountInPercentage: number,
   originalPrice: number,
+  originalCurrency?: string,
 ) => {
-  if (!discountInPercentage) {
-    return originalPrice;
+  const normalizedDiscountInPercentage = Number.isFinite(discountInPercentage)
+    ? discountInPercentage
+    : 0;
+  const discount = (originalPrice * normalizedDiscountInPercentage) / 100;
+  let finalPrice = originalPrice - discount;
+
+  if (originalCurrency && originalCurrency !== 'EUR') {
+    finalPrice = convertCurrency(
+      finalPrice,
+      originalCurrency as CurrencyCode,
+      'EUR',
+    );
   }
 
-  const discount = (originalPrice * discountInPercentage) / 100;
-  const finalPrice = originalPrice - discount;
-
-  return finalPrice || originalPrice;
+  return Number.isFinite(finalPrice) ? finalPrice : originalPrice;
 };
 
 export async function getProductsFromXML(
@@ -31,6 +43,7 @@ export async function getProductsFromXML(
   initialNode: string,
   mappingKeys: MappingKeys,
   discountInPercentage: number,
+  originalCurrency?: string,
 ): Promise<Partial<Product>[]> {
   try {
     // temporarily disable ssl
@@ -85,6 +98,7 @@ export async function getProductsFromXML(
         price: getPrice(
           discountInPercentage,
           normalizePrice(product.price as unknown as string),
+          originalCurrency,
         ),
       });
     }
