@@ -1,18 +1,23 @@
-import { Entity, Column, PrimaryGeneratedColumn, Unique, OneToMany } from 'typeorm';
-
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  Unique,
+  OneToMany,
+} from 'typeorm';
 
 export enum ProductTrendingScore {
-  LOW='low',
-  MID='mid',
-  HIGH='high'
+  LOW = 'low',
+  MID = 'mid',
+  HIGH = 'high',
 }
 @Entity()
-@Unique(['sku','tenantId'])
+@Unique(['sku', 'tenantId'])
 export class Product {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   name: string;
 
   @Column({ nullable: true })
@@ -35,7 +40,7 @@ export class Product {
 
   @Column({ nullable: true })
   tenantId: number;
-  
+
   @Column({ nullable: true })
   stock: string;
 
@@ -44,25 +49,30 @@ export class Product {
 
   @Column({ nullable: true })
   ean_normalized: string;
- 
+
   @Column({ nullable: true })
   main_image_url: string;
 
   @Column({
     nullable: true,
     type: 'enum',
-    enum: ProductTrendingScore, 
+    enum: ProductTrendingScore,
     default: ProductTrendingScore.LOW,
   })
   trending_score: ProductTrendingScore;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   expiration_date: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   expiration_date_normalized: Date;
-}
 
+  @Column({ type: 'decimal', nullable: true, precision: 10, scale: 3 })
+  weight: number;
+
+  @Column({ nullable: true })
+  size: string;
+}
 
 export type ProductsQueryParams = {
   pageNumber?: number;
@@ -72,7 +82,9 @@ export type ProductsQueryParams = {
   sku?: string;
   name?: string;
   ean?: string;
-  ean_normalized? : string;
+  ean_normalized?: string;
   brand?: string;
   trending_score?: string;
+  weightMin?: number;
+  weightMax?: number;
 };

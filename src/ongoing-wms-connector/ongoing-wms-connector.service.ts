@@ -5,54 +5,71 @@ import axios from 'axios';
 import { CreatePurchaseOrderDto } from 'src/purchase-orders';
 import { Supplier } from 'src/suppliers';
 import { KachingSubscriptionOptions } from 'src/kaching-subscriptions-connector/entities/kachin-subscription.entity';
+import { SkipForecastRuleGroup } from 'src/inventory-sync/forecast-rule-evaluator';
 
 export interface OngoingWmsConfig {
-  apiBaseUrl: string,
-  goodsOwnerId: number,
-  authorization: string, 
+  apiBaseUrl: string;
+  goodsOwnerId: number;
+  authorization: string;
   stockLimitAutomation: {
-    analyticsRangeInDays: number,
-    leadTimeInDays : number,
-    safetyStockInPercentage : number
-  }
-  kachingSubscriptionOptions?: KachingSubscriptionOptions
+    analyticsRangeInDays: number;
+    leadTimeInDays: number;
+    safetyStockInPercentage: number;
+  };
+  kachingSubscriptionOptions?: KachingSubscriptionOptions;
+  skipForecastRules?: SkipForecastRuleGroup[];
 }
 
 @Injectable()
 export class OngoingWmsConnectorService {
-
-  async updateArticleStockLimit(config: OngoingWmsConfig, articleNumber: string, newStockLimit: number) {
-    // This function currently doesn't update stocklimit in ongoing, need to investiage why. 
+  async updateArticleStockLimit(
+    config: OngoingWmsConfig,
+    articleNumber: string,
+    newStockLimit: number,
+  ) {
+    // This function currently doesn't update stocklimit in ongoing, need to investiage why.
     // However on the long run we should elimnate using the stock_limit values from the WMS and rely on our system only
     try {
-      const apiUrl = `${config.apiBaseUrl}/v1/articles`
+      const apiUrl = `${config.apiBaseUrl}/v1/articles`;
       const payload = {
         articleNumber,
         goodsOwnerId: config.goodsOwnerId,
-        defaultLocation: { stockLimit: newStockLimit }
-      }
+        defaultLocation: { stockLimit: newStockLimit },
+      };
 
-      return await axios.put(apiUrl, payload, { headers: { Authorization: config.authorization } })
-    }
-    catch (e) {
-      throw e
+      return await axios.put(apiUrl, payload, {
+        headers: { Authorization: config.authorization },
+      });
+    } catch (e) {
+      throw e;
     }
   }
 
   async getArticlesWithInventoryInfo(config: OngoingWmsConfig) {
-    const articles = await this.getArticles(config)
-    const articleInventories = await this.getArticlesInventory(config)
-    const articlesWithInventoryInfo = []
+    const articles = await this.getArticles(config);
+    const articleInventories = await this.getArticlesInventory(config);
+    const articlesWithInventoryInfo = [];
     for (const article of articles.data) {
-      const inventory = articleInventories.data.find((item) => item.articleNumber === article.articleNumber)
-      articlesWithInventoryInfo.push({ ...article, inventory: { ...article.inventoryInfo, inventoryPerWarehouse: inventory?.inventoryPerWarehouse } })
+      const inventory = articleInventories.data.find(
+        (item) => item.articleNumber === article.articleNumber,
+      );
+      articlesWithInventoryInfo.push({
+        ...article,
+        inventory: {
+          ...article.inventoryInfo,
+          inventoryPerWarehouse: inventory?.inventoryPerWarehouse,
+        },
+      });
     }
 
-    return articlesWithInventoryInfo
+    return articlesWithInventoryInfo;
   }
 
-  async createPurchaseOrder(config: OngoingWmsConfig, params: CreatePurchaseOrderDto, supplier: Supplier) {
-
+  async createPurchaseOrder(
+    config: OngoingWmsConfig,
+    params: CreatePurchaseOrderDto,
+    supplier: Supplier,
+  ) {
     const lines = params.lineItems.map((lineItem) => ({
       rowNumber: lineItem.productId,
       articleNumber: lineItem.product_ean,
@@ -97,26 +114,27 @@ export class OngoingWmsConnectorService {
     }
   }
 
-
   async getArticles(config: OngoingWmsConfig) {
-    const apiUrl = `${config.apiBaseUrl}/v1/articles?goodsOwnerId=${config.goodsOwnerId}`
+    const apiUrl = `${config.apiBaseUrl}/v1/articles?goodsOwnerId=${config.goodsOwnerId}`;
     try {
-      const results = await axios.get(apiUrl, { headers: { Authorization: config.authorization } })
-      return results
-    }
-    catch (e) {
-      console.error(e)
+      const results = await axios.get(apiUrl, {
+        headers: { Authorization: config.authorization },
+      });
+      return results;
+    } catch (e) {
+      console.error(e);
     }
   }
 
   async getArticlesInventory(config: OngoingWmsConfig) {
-    const apiUrl = `${config.apiBaseUrl}/v1/articles/inventoryPerWarehouse?goodsOwnerId=${config.goodsOwnerId}`
+    const apiUrl = `${config.apiBaseUrl}/v1/articles/inventoryPerWarehouse?goodsOwnerId=${config.goodsOwnerId}`;
     try {
-      const results = await axios.get(apiUrl, { headers: { Authorization: config.authorization } })
-      return results
-    }
-    catch (e) {
-      console.error(e)
+      const results = await axios.get(apiUrl, {
+        headers: { Authorization: config.authorization },
+      });
+      return results;
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -127,27 +145,33 @@ export class OngoingWmsConnectorService {
 
     // Format lastMonth to yyyy-mm-dd
     const formattedLastMonth = lastMonth.toISOString().split('T')[0];
-    const apiUrl = `${config.apiBaseUrl}/v1/purchaseOrders?goodsOwnerId=${config.goodsOwnerId}&purchaseOrderStatusChangedTimeFrom=${formattedLastMonth}`
+    const apiUrl = `${config.apiBaseUrl}/v1/purchaseOrders?goodsOwnerId=${config.goodsOwnerId}&purchaseOrderStatusChangedTimeFrom=${formattedLastMonth}`;
     try {
-      const results = await axios.get(apiUrl, { headers: { Authorization: config.authorization } })
-      return results
-    }
-    catch (e) {
-      console.error(e)
+      const results = await axios.get(apiUrl, {
+        headers: { Authorization: config.authorization },
+      });
+      return results;
+    } catch (e) {
+      console.error(e);
     }
   }
 
-  calculateAdjustmentQuantity(params: { numberOfItems: number, numberOfBookedItems: number, numberOfIncomingItems: number, stockLimit?: number }) {
+  calculateAdjustmentQuantity(params: {
+    numberOfItems: number;
+    numberOfBookedItems: number;
+    numberOfIncomingItems: number;
+    stockLimit?: number;
+  }) {
+    const availableStock = params.numberOfItems + params.numberOfIncomingItems;
+    const actualStock = availableStock - params.numberOfBookedItems;
 
-    const availableStock = params.numberOfItems + params.numberOfIncomingItems
-    const actualStock = availableStock - params.numberOfBookedItems
-
-    return actualStock
+    return actualStock;
   }
 
   extractTotalAvailableStock(article) {
     return article.inventory.inventoryPerWarehouse.reduce(
-      (sum, warehouseInfo) => sum + warehouseInfo.numberOfItems, 0
+      (sum, warehouseInfo) => sum + warehouseInfo.numberOfItems,
+      0,
     );
   }
 
@@ -163,7 +187,10 @@ export class OngoingWmsConnectorService {
     return `This action returns a #${id} ongoingWmsConnector`;
   }
 
-  update(id: number, updateOngoingWmsConnectorDto: UpdateOngoingWmsConnectorDto) {
+  update(
+    id: number,
+    updateOngoingWmsConnectorDto: UpdateOngoingWmsConnectorDto,
+  ) {
     return `This action updates a #${id} ongoingWmsConnector`;
   }
 

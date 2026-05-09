@@ -4,39 +4,37 @@ import { Injectable } from '@nestjs/common';
 import { downloadProductFeed } from './web-automations/download-product-feed';
 import { processExcelProductFeed } from './processors/process-excel-product-feed';
 import { Product } from 'src/products';
-import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 
 const delay = async (ms: number) => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
 
 export type PowerBodyProduct = {
-  brand?: string,
-  name?: string,
-  sku?: string,
-  ean?: string,
-  stock?: string,
-  price1?: string,
-  price2?: string,
-  price3?: string,
-  main_image_url?: string, 
-}
+  brand?: string;
+  name?: string;
+  sku?: string;
+  ean?: string;
+  stock?: string;
+  price1?: string;
+  price2?: string;
+  price3?: string;
+  main_image_url?: string;
+  weight?: string;
+};
 
 export enum PowerbodyWebautomationAction {
-  DOWNLOAD_PRODUCT_FEED = 'download-product-feed'
+  DOWNLOAD_PRODUCT_FEED = 'download-product-feed',
 }
 
 export type PowerbodyWebAutomationConfig = {
-  action: PowerbodyWebautomationAction,
-  username: string,
-  password: string,
-  productMappingKeys: Record<string, string>
-}
-
+  action: PowerbodyWebautomationAction;
+  username: string;
+  password: string;
+  productMappingKeys: Record<string, string>;
+};
 
 @Injectable()
 export class PowerbodyConnectorService {
-
   // Function to get the latest file from a folder
   async getLatestFile(folderPath: string): Promise<string | null> {
     try {
@@ -49,11 +47,11 @@ export class PowerbodyConnectorService {
 
       // Get file info and sort by modification time (newest first)
       const sortedFiles = await Promise.all(
-        files.map(async file => {
+        files.map(async (file) => {
           const filePath = path.join(folderPath, file);
           const stats = await fs.promises.stat(filePath);
           return { filePath, mtime: stats.mtime };
-        })
+        }),
       );
 
       sortedFiles.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
@@ -81,14 +79,23 @@ export class PowerbodyConnectorService {
     }
   }
 
-  async handleDownloadProductFeedAction(tenantId: number, config: PowerbodyWebAutomationConfig): Promise<string | null> {
+  async handleDownloadProductFeedAction(
+    tenantId: number,
+    config: PowerbodyWebAutomationConfig,
+  ): Promise<string | null> {
     try {
-      const downloadPath = path.join(process.cwd(), `./tenants/${tenantId}/powerbody/product-feeds`);
+      const downloadPath = path.join(
+        process.cwd(),
+        `./tenants/${tenantId}/powerbody/product-feeds`,
+      );
 
-      const isFolderReady = this.allocateFolder(downloadPath)
+      const isFolderReady = this.allocateFolder(downloadPath);
 
       if (isFolderReady) {
-        console.info('Attempting to download file to this path: ', downloadPath)
+        console.info(
+          'Attempting to download file to this path: ',
+          downloadPath,
+        );
 
         await downloadProductFeed(config, downloadPath);
 
@@ -102,9 +109,8 @@ export class PowerbodyConnectorService {
           console.error('File not found after renaming.');
           return null;
         }
-      }
-      else {
-        console.error('Folder was not ready please try again.')
+      } else {
+        console.error('Folder was not ready please try again.');
       }
     } catch (e) {
       console.error('handleDownloadProductFeedAction error:', e);
@@ -117,30 +123,41 @@ export class PowerbodyConnectorService {
       return {
         brand: powerbodyProduct.brand,
         ean: powerbodyProduct.ean,
-        ean_normalized: normalizeEAN(powerbodyProduct.ean),
         name: powerbodyProduct.name,
         sku: powerbodyProduct.sku,
-        price: Number(powerbodyProduct.price1 ?? powerbodyProduct.price2 ?? powerbodyProduct.price3),
+        price: Number(
+          powerbodyProduct.price1 ??
+            powerbodyProduct.price2 ??
+            powerbodyProduct.price3,
+        ),
         stock: powerbodyProduct.stock,
         main_image_url: powerbodyProduct.main_image_url,
-      };
+        weight: powerbodyProduct.weight ?? undefined,
+      } as unknown as Partial<Product>;
     });
 
     return products;
-  }
+  };
 
-
-  async handleWebAutomationJob(config: PowerbodyWebAutomationConfig, tenantId: number) {
+  async handleWebAutomationJob(
+    config: PowerbodyWebAutomationConfig,
+    tenantId: number,
+  ) {
     if (config.action === PowerbodyWebautomationAction.DOWNLOAD_PRODUCT_FEED) {
-      const filePath = await this.handleDownloadProductFeedAction(tenantId, config);
+      const filePath = await this.handleDownloadProductFeedAction(
+        tenantId,
+        config,
+      );
 
       if (filePath) {
-        const powerbodyProducts: PowerBodyProduct[] = await processExcelProductFeed(filePath, config.productMappingKeys);
-        const products: Partial<Product>[] = this.mapProducts(powerbodyProducts)
+        const powerbodyProducts: PowerBodyProduct[] =
+          await processExcelProductFeed(filePath, config.productMappingKeys);
+        const products: Partial<Product>[] =
+          this.mapProducts(powerbodyProducts);
         if (!products.length) {
-          return []
+          return [];
         }
-        return products
+        return products;
       }
     }
   }

@@ -1,23 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { EntityType, JobConfiguration } from 'src/job-configurations';
 import { InventoryService } from 'src/inventory/inventory.service';
-import { OngoingWmsConfig, OngoingWmsConnectorService } from 'src/ongoing-wms-connector/ongoing-wms-connector.service';
+import {
+  OngoingWmsConfig,
+  OngoingWmsConnectorService,
+} from 'src/ongoing-wms-connector/ongoing-wms-connector.service';
 import { WarehouseManagementSystemsService } from 'src/warehouse-management-systems';
 import { Inventory } from 'src/inventory/entities';
-import { WicsWmsConfig, WicsWmsConnectorService } from 'src/wics-wms-connector/wics-wms-connector.service';
+import {
+  WicsWmsConfig,
+  WicsWmsConnectorService,
+} from 'src/wics-wms-connector/wics-wms-connector.service';
 import { EcommercePlatformsService } from 'src/ecommerce-platforms';
 import { Product, ProductsService } from 'src/products';
-import { ShopifyConfig, ShopifyConnectorService } from 'src/shopify-connector/shopify-connector.service';
+import {
+  ShopifyConfig,
+  ShopifyConnectorService,
+} from 'src/shopify-connector/shopify-connector.service';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
-import { ProductAnalytic, ProductAnalyticsService } from 'src/product-analytics';
+import {
+  ProductAnalytic,
+  ProductAnalyticsService,
+} from 'src/product-analytics';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, MoreThan, Repository } from 'typeorm';
 import { KachingSubscriptionBillingCycle } from 'src/kaching-subscriptions-connector/entities/kachin-subscription.entity';
+import { shouldSkipForecast } from './forecast-rule-evaluator';
 
 export type InventoryStockSuggestion = {
-  product_ean: string,
-  stockSuggestion: number,
-}
+  product_ean: string;
+  stockSuggestion: number;
+};
 
 export enum ShopStockModel {
   TEST = 'test',
@@ -25,18 +38,18 @@ export enum ShopStockModel {
   SUPPLIER_FIRST_WAREHOUSE_SECOND = 'supplierFirstWarehouseSecond',
   SUPPLIER_ONLY = 'supplierOnly',
   WAREHOUSE_ONLY = 'warehouseOnly',
-  COMBINE_WAREHOUSE_AND_SUPPLIERS = 'combineWarehouseAndSuppliers'
+  COMBINE_WAREHOUSE_AND_SUPPLIERS = 'combineWarehouseAndSuppliers',
 }
 
 @Injectable()
 export class InventorySyncService {
   constructor(
     @InjectRepository(Inventory)
-    private readonly inventoryRepository : Repository<Inventory>,
+    private readonly inventoryRepository: Repository<Inventory>,
     @InjectRepository(Product)
-    private readonly productRepository : Repository<Product>,
+    private readonly productRepository: Repository<Product>,
     @InjectRepository(ProductAnalytic)
-    private readonly productAnalyticRepository : Repository<ProductAnalytic>,
+    private readonly productAnalyticRepository: Repository<ProductAnalytic>,
     private readonly inventoryService: InventoryService,
     private readonly shopifyConnectorService: ShopifyConnectorService,
     private readonly productsService: ProductsService,
@@ -44,45 +57,56 @@ export class InventorySyncService {
     private readonly wicsWmsConnectorService: WicsWmsConnectorService,
     private readonly ecommercePlatformService: EcommercePlatformsService,
     private readonly warehouseManagementSystemsService: WarehouseManagementSystemsService,
-    private readonly productAnalyticService : ProductAnalyticsService,
+    private readonly productAnalyticService: ProductAnalyticsService,
     @InjectRepository(KachingSubscriptionBillingCycle)
-    private readonly kachingSubscriptionBillingCycleRepo :Repository<KachingSubscriptionBillingCycle>
-    
-    ) {
-  }
+    private readonly kachingSubscriptionBillingCycleRepo: Repository<KachingSubscriptionBillingCycle>,
+  ) {}
 
-  getOrderQuantityForItem(analytics: ProductAnalytic[] ){
-    let total = 0
-    for(const analytic of analytics){
-      total = total + analytic.count
+  getOrderQuantityForItem(analytics: ProductAnalytic[]) {
+    let total = 0;
+    for (const analytic of analytics) {
+      total = total + analytic.count;
     }
-    
-    return total
+
+    return total;
   }
 
-
-  async getOrderAnalytics(clientId: number, analyticsRangeInDays: number) : Promise<ProductAnalytic[]> {
+  async getOrderAnalytics(
+    clientId: number,
+    analyticsRangeInDays: number,
+  ): Promise<ProductAnalytic[]> {
     const currentDate = new Date();
-    const dateFrom = new Date(currentDate.getTime() - analyticsRangeInDays * 24 * 60 * 60 * 1000);
-    return await this.productAnalyticRepository.find({where: { clientId, createdAt: MoreThan(dateFrom)  }}) 
+    const dateFrom = new Date(
+      currentDate.getTime() - analyticsRangeInDays * 24 * 60 * 60 * 1000,
+    );
+    return await this.productAnalyticRepository.find({
+      where: { clientId, createdAt: MoreThan(dateFrom) },
+    });
   }
 
-
-  async handleAdjustStockMinimumReorder(jobConfiguration: JobConfiguration){
+  async handleAdjustStockMinimumReorder(jobConfiguration: JobConfiguration) {
     const currentDate = new Date();
     const dateFrom = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const inventories = await this.inventoryRepository.find({where: {clientId: jobConfiguration.tenantId}})
-    const analytics = await this.productAnalyticRepository.find({where: { clientId: jobConfiguration.tenantId, createdAt: MoreThan(dateFrom)  }})
+    const inventories = await this.inventoryRepository.find({
+      where: { clientId: jobConfiguration.tenantId },
+    });
+    const analytics = await this.productAnalyticRepository.find({
+      where: {
+        clientId: jobConfiguration.tenantId,
+        createdAt: MoreThan(dateFrom),
+      },
+    });
     const inventoryUpdates: Partial<Inventory>[] = [];
 
-    for(const inventory of inventories){
-       inventory.minimum_reorder_amount = 0
-       const totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === inventory.product_ean))
-       if(totalOrderCount > 0){
-         inventory.minimum_reorder_amount = totalOrderCount; // remove this later (replaced with dynamic_stock_limit)
-         inventoryUpdates.push(inventory);
-       }
-
+    for (const inventory of inventories) {
+      inventory.minimum_reorder_amount = 0;
+      const totalOrderCount = this.getOrderQuantityForItem(
+        analytics.filter((a) => a.product_ean === inventory.product_ean),
+      );
+      if (totalOrderCount > 0) {
+        inventory.minimum_reorder_amount = totalOrderCount; // remove this later (replaced with dynamic_stock_limit)
+        inventoryUpdates.push(inventory);
+      }
     }
 
     if (inventoryUpdates.length) {
@@ -94,35 +118,48 @@ export class InventorySyncService {
     }
   }
 
-  getStockBalance(inventory: Inventory, availableStock: number, subscriptionQuantity: number) {
-    const stock_balance = availableStock - inventory.number_of_book_items -  inventory.stock_limit - subscriptionQuantity
+  getStockBalance(
+    inventory: Inventory,
+    availableStock: number,
+    subscriptionQuantity: number,
+  ) {
+    const stock_balance =
+      availableStock -
+      inventory.number_of_book_items -
+      inventory.stock_limit -
+      subscriptionQuantity;
     if (inventory.number_of_book_items > 0) {
-      return stock_balance
+      return stock_balance;
     }
 
-    if(subscriptionQuantity > 0){
-      return subscriptionQuantity
+    if (subscriptionQuantity > 0) {
+      return subscriptionQuantity;
     }
 
-    return 0
+    return 0;
   }
 
-  getStockLimitForItem(params: { forecastPerDay: number; leadTimeInDays: number; safetyStockInPercentage: number }) {
+  getStockLimitForItem(params: {
+    forecastPerDay: number;
+    leadTimeInDays: number;
+    safetyStockInPercentage: number;
+  }) {
     const base_stock = params.forecastPerDay * params.leadTimeInDays;
-    const stock_limit = base_stock + (base_stock * params.safetyStockInPercentage); // safety_stock is a percentage
+    const stock_limit =
+      base_stock + base_stock * params.safetyStockInPercentage; // safety_stock is a percentage
     return Math.ceil(stock_limit);
   }
 
   getAggregatedProductDemandFromSubscriptions(subscriptions) {
     const subscriptionDemandMap = new Map();
     for (const sub of subscriptions) {
-        const current = subscriptionDemandMap.get(sub.sku) ?? 0;
-        subscriptionDemandMap.set(sub.sku, current + sub.quantity);
+      const current = subscriptionDemandMap.get(sub.sku) ?? 0;
+      subscriptionDemandMap.set(sub.sku, current + sub.quantity);
     }
     return subscriptionDemandMap;
-}
+  }
 
-  async getSubscriptionDemands(tenantId: number, rangeIndDays: number){
+  async getSubscriptionDemands(tenantId: number, rangeIndDays: number) {
     const subscriptions = await this.kachingSubscriptionBillingCycleRepo.find({
       where: {
         tenantId,
@@ -134,126 +171,182 @@ export class InventorySyncService {
       },
     });
 
-    return this.getAggregatedProductDemandFromSubscriptions(subscriptions)
+    return this.getAggregatedProductDemandFromSubscriptions(subscriptions);
   }
-  
+
   async handleSyncOngoingWmsInventory(config: OngoingWmsConfig, clientId) {
-    try{ 
+    try {
+      const { analyticsRangeInDays, leadTimeInDays, safetyStockInPercentage } =
+        config.stockLimitAutomation;
 
-      const  { analyticsRangeInDays, leadTimeInDays, safetyStockInPercentage } = config.stockLimitAutomation
+      const articles =
+        await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(
+          config,
+        );
+      const analytics = await this.getOrderAnalytics(
+        clientId,
+        analyticsRangeInDays,
+      );
+      let subscriptionDemands = null;
 
-      const articles = await this.ongoingWmsConnectorService.getArticlesWithInventoryInfo(config);
-      const analytics = await this.getOrderAnalytics(clientId, analyticsRangeInDays)
-      let subscriptionDemands = null
-      
-      if (config.kachingSubscriptionOptions){
-        subscriptionDemands = await this.getSubscriptionDemands(clientId, config.kachingSubscriptionOptions.forcastWindowInDays)
+      if (config.kachingSubscriptionOptions) {
+        subscriptionDemands = await this.getSubscriptionDemands(
+          clientId,
+          config.kachingSubscriptionOptions.forcastWindowInDays,
+        );
       }
-    
-      const inventories: Partial<Inventory>[] = []
-      
+
+      // Build a product lookup map by EAN for O(1) access during rule evaluation
+      const productsByEan = new Map<string, Product>();
+      if (config.skipForecastRules?.length) {
+        const clientProducts = await this.productRepository.find({
+          where: { tenantId: clientId },
+        });
+        for (const p of clientProducts) {
+          if (p.ean) productsByEan.set(p.ean_normalized, p);
+        }
+      }
+
+      const inventories: Partial<Inventory>[] = [];
+
       for (const article of articles) {
-        if ( article.articleNumber === '5902837741031'){
-            console.log(article)
-        }
-      
-        let subscriptionQty = 0
-        let stockLimit_auto = 0
-        let totalOrderCount = 0
-      
-        if (config.kachingSubscriptionOptions){
-          subscriptionQty =  subscriptionDemands.get(article.articleNumber) ?? 0;
+        if (article.articleNumber === '0733739059765') {
+          console.log(article);
         }
 
-        totalOrderCount = this.getOrderQuantityForItem(analytics.filter((a)=> a.product_ean === article.articleNumber))
-        const forecastPerDay = totalOrderCount / analyticsRangeInDays
+        let subscriptionQty = 0;
+        let stockLimit_auto = 0;
+        let totalOrderCount = 0;
+        const product = productsByEan.get(article.articleNumber);
 
-        if(totalOrderCount > 0){
-          stockLimit_auto = this.getStockLimitForItem({forecastPerDay, leadTimeInDays, safetyStockInPercentage })
+        const skipForecast = config.skipForecastRules?.length
+          ? shouldSkipForecast(config.skipForecastRules, product)
+          : false;
+
+        if (!skipForecast) {
+          if (config.kachingSubscriptionOptions) {
+            subscriptionQty =
+              subscriptionDemands.get(article.articleNumber) ?? 0;
+          }
+
+          totalOrderCount = this.getOrderQuantityForItem(
+            analytics.filter((a) => a.product_ean === article.articleNumber),
+          );
+          const forecastPerDay = totalOrderCount / analyticsRangeInDays;
+
+          if (totalOrderCount > 0) {
+            stockLimit_auto = this.getStockLimitForItem({
+              forecastPerDay,
+              leadTimeInDays,
+              safetyStockInPercentage,
+            });
+          }
         }
-        
-        const availableStock = article.inventoryInfo.numberOfItems + article.inventoryInfo.toReceiveNumberOfItems;
-        const inventory = new Inventory()
 
-        inventory.stock_limit = article.stockLimit ?? 0
+        const availableStock =
+          article.inventoryInfo.numberOfItems +
+          article.inventoryInfo.toReceiveNumberOfItems;
+        const inventory = new Inventory();
 
-        if(stockLimit_auto > 0){
-          inventory.stock_limit = stockLimit_auto
+        inventory.stock_limit = article.stockLimit ?? 0;
+
+        if (stockLimit_auto > 0) {
+          inventory.stock_limit = stockLimit_auto;
         }
 
-        inventory.minimum_reorder_amount = totalOrderCount
+        inventory.minimum_reorder_amount = totalOrderCount;
         inventory.clientId = clientId;
         inventory.article_number = article.articleNumber;
         inventory.product_ean = article.articleNumber;
         inventory.product_sku = article.articleNumber;
-        inventory.sellable_number_of_items = article.inventoryInfo.sellableNumberOfItems
-        inventory.number_of_book_items = article.inventoryInfo.numberOfBookedItems
-        inventory.number_of_items = article.inventoryInfo.numberOfItems
-        inventory.to_receive_number_of_items = article.inventoryInfo.toReceiveNumberOfItems
-        inventory.actual_stock = inventory.sellable_number_of_items + inventory.to_receive_number_of_items
-        inventory.stock_need = availableStock - inventory.number_of_book_items -  inventory.stock_limit; 
-        inventory.stock_balance = this.getStockBalance(inventory, availableStock, subscriptionQty);
+        inventory.sellable_number_of_items =
+          article.inventoryInfo.sellableNumberOfItems;
+        inventory.number_of_book_items =
+          article.inventoryInfo.numberOfBookedItems;
+        inventory.number_of_items = article.inventoryInfo.numberOfItems;
+        inventory.to_receive_number_of_items =
+          article.inventoryInfo.toReceiveNumberOfItems;
+        inventory.actual_stock =
+          inventory.sellable_number_of_items +
+          inventory.to_receive_number_of_items;
+        inventory.stock_need =
+          availableStock -
+          inventory.number_of_book_items -
+          inventory.stock_limit;
+        inventory.stock_balance = this.getStockBalance(
+          inventory,
+          availableStock,
+          subscriptionQty,
+        );
 
-        inventories.push(inventory)
+        inventories.push(inventory);
       }
 
-    this.inventoryService.upserInventory(clientId, inventories as Inventory[])
-
-    } catch(e){
-     console.log(e)
+      this.inventoryService.upserInventory(
+        clientId,
+        inventories as Inventory[],
+      );
+    } catch (e) {
+      console.log(e);
     }
   }
 
   async handleSyncWicsWmsInventory(config: WicsWmsConfig, clientId) {
-    const wicsStocks = await this.wicsWmsConnectorService.getArticlesInventory(config)
-    const inventories: Partial<Inventory>[] = []
+    const wicsStocks =
+      await this.wicsWmsConnectorService.getArticlesInventory(config);
+    const inventories: Partial<Inventory>[] = [];
     for (const item of wicsStocks) {
-      const inventory = new Inventory()
+      const inventory = new Inventory();
       inventory.clientId = clientId;
-      inventory.stock_limit = inventory.stock_limit ?? 0
+      inventory.stock_limit = inventory.stock_limit ?? 0;
       inventory.article_number = item.itemCode;
       inventory.product_ean = item.itemCode;
       inventory.product_sku = item.itemCode;
-      inventory.sellable_number_of_items = item.nettoSalable
-      inventory.number_of_items = item.physical
-      inventory.to_receive_number_of_items = item.announced
-      inventory.actual_stock = item.nettoSalable + item.announced
+      inventory.sellable_number_of_items = item.nettoSalable;
+      inventory.number_of_items = item.physical;
+      inventory.to_receive_number_of_items = item.announced;
+      inventory.actual_stock = item.nettoSalable + item.announced;
       inventory.stock_balance = inventory.actual_stock - inventory.stock_limit;
-      inventories.push(inventory)
+      inventories.push(inventory);
     }
 
-    this.inventoryService.upserInventory(clientId, inventories as Inventory[])
+    this.inventoryService.upserInventory(clientId, inventories as Inventory[]);
   }
 
-  getStockSuggestionBasedOnModel(model: ShopStockModel, supplierStock: number, warehouseStock: number): number {
+  getStockSuggestionBasedOnModel(
+    model: ShopStockModel,
+    supplierStock: number,
+    warehouseStock: number,
+  ): number {
     if (model === ShopStockModel.TEST) {
-      return 111
+      return 111;
     }
 
     if (model === ShopStockModel.COMBINE_WAREHOUSE_AND_SUPPLIERS) {
-      return warehouseStock + supplierStock
+      return warehouseStock + supplierStock;
     }
 
     if (model === ShopStockModel.WAREHOUSE_FIRST_SUPPLIER_SECOND) {
-      return warehouseStock ?? supplierStock
+      return warehouseStock ?? supplierStock;
     }
     if (model === ShopStockModel.SUPPLIER_FIRST_WAREHOUSE_SECOND) {
-      return supplierStock ?? warehouseStock
+      return supplierStock ?? warehouseStock;
     }
     if (model === ShopStockModel.SUPPLIER_ONLY) {
-      return supplierStock
+      return supplierStock;
     }
     if (model === ShopStockModel.WAREHOUSE_ONLY) {
-      return warehouseStock
+      return warehouseStock;
     }
 
-    return 0
+    return 0;
   }
 
-
-  findSupplierProductWithHighestStockForGivenProduct(products: Product[]): Product | null {
+  findSupplierProductWithHighestStockForGivenProduct(
+    products: Product[],
+  ): Product | null {
     if (products.length === 0) return null;
-  
+
     return products.reduce((prev, current) => {
       const prevStock = parseFloat(prev.stock || '0');
       const currentStock = parseFloat(current.stock || '0');
@@ -262,8 +355,8 @@ export class InventorySyncService {
   }
 
   getProductSupplierStock_deprecated(product: Product, products: Product[]) {
-    if(!product){
-      return 0
+    if (!product) {
+      return 0;
     }
     const filteredProducts = products.filter((p) => product.ean === p.ean);
     // Use Math.max to find the highest stock among the filtered products
@@ -283,91 +376,119 @@ export class InventorySyncService {
     return supplierStockMap;
   }
 
-   parseStockValue(stock: string | number | null | undefined): number {
+  parseStockValue(stock: string | number | null | undefined): number {
     if (stock == null) return 0;
-  
+
     if (typeof stock === 'number') return stock;
-  
+
     if (typeof stock === 'string') {
       const numericPart = stock.match(/\d+/); // grabs the number part
       if (numericPart) {
         return parseInt(numericPart[0], 10);
       }
     }
-  
+
     return 0;
   }
 
-  async getStockAdjustmentForClientStore(clientId: number, model: ShopStockModel): Promise<InventoryStockSuggestion[]> {
-    const inventories = await this.inventoryService.getClientInventories(clientId);
+  async getStockAdjustmentForClientStore(
+    clientId: number,
+    model: ShopStockModel,
+  ): Promise<InventoryStockSuggestion[]> {
+    const inventories =
+      await this.inventoryService.getClientInventories(clientId);
     const products = await this.productsService.getClientProducts(clientId);
     const suggestions: InventoryStockSuggestion[] = [];
 
     for (const inventory of inventories) {
-        const normalizedEAN = normalizeEAN(inventory.product_ean);
-        const matchingProducts = products.filter((product)=> normalizeEAN(product.ean) === normalizedEAN)
-        const warehouseStock = inventory.actual_stock || 0;
-        const supplierProductWithHighestStock = this.findSupplierProductWithHighestStockForGivenProduct(matchingProducts);
-        const supplierStock = this.parseStockValue(supplierProductWithHighestStock?.stock);
-        const stockSuggestion = this.getStockSuggestionBasedOnModel(model,supplierStock,warehouseStock);      
-        suggestions.push({ product_ean: inventory.product_ean, stockSuggestion });
+      const normalizedEAN = normalizeEAN(inventory.product_ean);
+      const matchingProducts = products.filter(
+        (product) => normalizeEAN(product.ean) === normalizedEAN,
+      );
+      const warehouseStock = inventory.actual_stock || 0;
+      const supplierProductWithHighestStock =
+        this.findSupplierProductWithHighestStockForGivenProduct(
+          matchingProducts,
+        );
+      const supplierStock = this.parseStockValue(
+        supplierProductWithHighestStock?.stock,
+      );
+      const stockSuggestion = this.getStockSuggestionBasedOnModel(
+        model,
+        supplierStock,
+        warehouseStock,
+      );
+      suggestions.push({ product_ean: inventory.product_ean, stockSuggestion });
     }
 
     return suggestions;
   }
 
-  async handleEcommercePlatformSyncInventoryJob(jobConfiguration: JobConfiguration) {
-    const { entityReferenceId, tenantId, config } = jobConfiguration
-    const ecommercePlatform = await this.ecommercePlatformService.findOne(entityReferenceId)
-    const storeStockAdjustmentSuggestions = await this.getStockAdjustmentForClientStore(tenantId, config.stockAdjustmentModel)
+  async handleEcommercePlatformSyncInventoryJob(
+    jobConfiguration: JobConfiguration,
+  ) {
+    const { entityReferenceId, tenantId, config } = jobConfiguration;
+    const ecommercePlatform =
+      await this.ecommercePlatformService.findOne(entityReferenceId);
+    const storeStockAdjustmentSuggestions =
+      await this.getStockAdjustmentForClientStore(
+        tenantId,
+        config.stockAdjustmentModel,
+      );
 
     try {
       if (ecommercePlatform.name === 'shopify') {
-        await this.shopifyConnectorService.syncInventory(jobConfiguration.config as ShopifyConfig, storeStockAdjustmentSuggestions)
+        await this.shopifyConnectorService.syncInventory(
+          jobConfiguration.config as ShopifyConfig,
+          storeStockAdjustmentSuggestions,
+        );
       }
-    }
-    catch (e) {
-      console.error(e)
-      throw (e)
+    } catch (e) {
+      console.error(e);
+      throw e;
     }
 
-    return true
+    return true;
   }
 
   async handleWarehouseSyncInventoryJob(jobConfiguration: JobConfiguration) {
-    const { entityReferenceId, tenantId } = jobConfiguration
-    const warehouseManagemenSystem = await this.warehouseManagementSystemsService.findOne(entityReferenceId)
+    const { entityReferenceId, tenantId } = jobConfiguration;
+    const warehouseManagemenSystem =
+      await this.warehouseManagementSystemsService.findOne(entityReferenceId);
 
     try {
       if (warehouseManagemenSystem.name === 'ongoing') {
-        await this.handleSyncOngoingWmsInventory(jobConfiguration.config as OngoingWmsConfig, tenantId)
+        await this.handleSyncOngoingWmsInventory(
+          jobConfiguration.config as OngoingWmsConfig,
+          tenantId,
+        );
       }
       if (warehouseManagemenSystem.name === 'wics') {
-        await this.handleSyncWicsWmsInventory(jobConfiguration.config as WicsWmsConfig, tenantId)
+        await this.handleSyncWicsWmsInventory(
+          jobConfiguration.config as WicsWmsConfig,
+          tenantId,
+        );
       }
-    }
-    catch (e) {
-      throw (e)
+    } catch (e) {
+      throw e;
     }
 
-    return true
+    return true;
   }
 
   async handleSyncInventoryJob(jobConfiguration: JobConfiguration) {
-    const { entityType } = jobConfiguration
+    const { entityType } = jobConfiguration;
     try {
       if (entityType === EntityType.warehouseManagemenSystem) {
-        await this.handleWarehouseSyncInventoryJob(jobConfiguration)
+        await this.handleWarehouseSyncInventoryJob(jobConfiguration);
       }
       if (entityType === EntityType.ecommercePlatform) {
-        await this.handleEcommercePlatformSyncInventoryJob(jobConfiguration)
+        await this.handleEcommercePlatformSyncInventoryJob(jobConfiguration);
       }
+    } catch (e) {
+      throw e;
     }
 
-    catch (e) {
-      throw (e)
-    }
-
-    return true
+    return true;
   }
 }

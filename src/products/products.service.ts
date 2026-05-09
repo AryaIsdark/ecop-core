@@ -2,14 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductsQueryParams } from './entities/product.entity';
-import { EntityManager, ILike, Repository } from 'typeorm';
+import {
+  Between,
+  EntityManager,
+  ILike,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { InventoryService } from 'src/inventory/inventory.service';
 import { SuppliersService } from 'src/suppliers';
 import { Paginate } from 'src/base/paginate';
-import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 import { ProductMediaService } from 'src/product-media';
-import { normalizeDate } from 'src/utils/normalize-date/normalize-date';
 
 @Injectable()
 export class ProductsService {
@@ -69,6 +74,13 @@ export class ProductsService {
     }
     if (params.trending_score) {
       whereConditions.trending_score = params.trending_score;
+    }
+    if (params.weightMin != null && params.weightMax != null) {
+      whereConditions.weight = Between(params.weightMin, params.weightMax);
+    } else if (params.weightMin != null) {
+      whereConditions.weight = MoreThanOrEqual(params.weightMin);
+    } else if (params.weightMax != null) {
+      whereConditions.weight = LessThanOrEqual(params.weightMax);
     }
 
     const [products, count] = await this.repository.findAndCount({
@@ -171,7 +183,7 @@ export class ProductsService {
     });
     const updates = [];
     for (const product of clientProducts) {
-      updates.push({ ...product, stock: '0' });
+      updates.push({ ...product, stock: '0', weight: product.weight || null });
     }
 
     return await this.repository.save(updates);

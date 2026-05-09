@@ -7,26 +7,47 @@ interface MappingKeys {
   [key: string]: string;
 }
 
-export const normalizePrice = (price: string) => {
+export const normalizePrice = (price: string | number) => {
+  if (typeof price === 'number') return price;
   return Number(price.replace(',', '.').trim());
 };
 
-export const getPrice = (discountInPercentage: number, originalPrice: number) => {
-  if (!discountInPercentage) {
-    return originalPrice;
-  }
+/** Parses a weight value and returns kg. Defaults to grams input. */
+export const normalizeWeight = (
+  weight: string | number,
+  unit: 'g' | 'kg' = 'g',
+) => {
+  const value =
+    typeof weight === 'number'
+      ? weight
+      : Number(weight.replace(',', '.').trim());
+  return unit === 'g' ? value / 1000 : value;
+};
 
-  const discount = (originalPrice * discountInPercentage) / 100;
-  const finalPrice = originalPrice - discount;
+/**
+ * Attempts to extract a weight in kg from a freeform size string.
+ *
+ * Handles grams ("500 g", "500g", "500 gram", "500 grams") and kilograms
+ * ("1.5 kg", "1,5kg"). Returns null when no weight unit is detected (e.g.
+ * "10 servings", "10 packs").
+ */
+export const weightFromSize = (size: string): number | null => {
+  if (!size) return null;
+  const normalised = size.replace(',', '.').trim();
 
-  return finalPrice || originalPrice;
+  const gramsMatch = normalised.match(/^(\d+(?:\.\d+)?)\s*g(?:rams?)?\s*$/i);
+  if (gramsMatch) return Number(gramsMatch[1]) / 1000;
+
+  const kgMatch = normalised.match(/^(\d+(?:\.\d+)?)\s*kg\s*$/i);
+  if (kgMatch) return Number(kgMatch[1]);
+
+  return null;
 };
 
 export async function getProductsFromXML(
   url: string,
   initialNode: string,
   mappingKeys: MappingKeys,
-  discountInPercentage: number
 ): Promise<Partial<Product>[]> {
   try {
     // Fetch the XML content from the URL
@@ -38,7 +59,10 @@ export async function getProductsFromXML(
     const xmlDoc = parser.parseFromString(xmlString, 'application/xml');
 
     // Function to get text content by XPath and trim it
-    function getTextContentByXPath(xpathExpr: string, contextNode: Node): string {
+    function getTextContentByXPath(
+      xpathExpr: string,
+      contextNode: Node,
+    ): string {
       const nodes = xpath.select(xpathExpr, contextNode) as Node[];
       return nodes.length > 0 ? nodes[0].textContent?.trim() || '' : '';
     }
@@ -65,13 +89,7 @@ export async function getProductsFromXML(
         }
       });
 
-      productArray.push({
-        ...product,
-        price: getPrice(
-          discountInPercentage,
-          normalizePrice(product.price as unknown as string)
-        ),
-      });
+      productArray.push({ ...product });
     }
 
     return productArray;

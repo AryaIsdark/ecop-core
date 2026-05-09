@@ -9,6 +9,11 @@ import { readWebApiFeed } from 'src/utils/read-webapi-feed/read-webapi-feed';
 import { isDateValidByShelfLife } from 'src/utils/is-date-valid-by-shelf-life/is-date-valid-by-shelf-life';
 import { normalizeEAN } from 'src/utils/normalize-ean/normalize-ean';
 import { normalizeDate } from 'src/utils/normalize-date/normalize-date';
+import {
+  normalizePrice,
+  normalizeWeight,
+  weightFromSize,
+} from 'src/utils/read-xml-feed/read-xml-feed';
 
 @Injectable()
 export class ProductSyncService {
@@ -17,13 +22,47 @@ export class ProductSyncService {
     private readonly productMediaService: ProductMediaService,
   ) {}
 
-  normalizeProducts(products: Partial<Product>[]): Partial<Product>[] {
+  private applyDiscount(
+    originalPrice: number,
+    discountInPercentage: number,
+  ): number {
+    if (!discountInPercentage) return originalPrice;
+    const discount = (originalPrice * discountInPercentage) / 100;
+    return originalPrice - discount || originalPrice;
+  }
+
+  normalizeProducts(
+    products: Partial<Product>[],
+    config: JobConfiguration['config'] = {},
+  ): Partial<Product>[] {
+    const weightUnit: 'g' | 'kg' = config.weightUnit ?? 'g';
+    const discountInPercentage: number = config.discountInPercentage ?? 0;
+
     return products.map((product) => ({
       ...product,
       ean_normalized: normalizeEAN(product.ean),
       expiration_date_normalized: product.expiration_date
         ? (normalizeDate(product.expiration_date) ?? null)
         : null,
+      ...(product.price != null && {
+        price: this.applyDiscount(
+          normalizePrice(product.price as string | number),
+          discountInPercentage,
+        ),
+      }),
+      ...(product.weight != null
+        ? {
+            weight: normalizeWeight(
+              product.weight as string | number,
+              weightUnit,
+            ),
+          }
+        : (product as any).size != null
+          ? {
+              weight:
+                weightFromSize(String((product as any).size)) ?? undefined,
+            }
+          : {}),
     }));
   }
 
@@ -76,7 +115,7 @@ export class ProductSyncService {
     jobConfiguration: JobConfiguration,
   ) {
     const { config } = jobConfiguration;
-    let normalizedProducts = this.normalizeProducts(products);
+    let normalizedProducts = this.normalizeProducts(products, config);
     if (config.minimumShelfLife) {
       normalizedProducts = this.excludeProductsWithShortExpiryDate(
         config.minimumShelfLife,
@@ -93,18 +132,12 @@ export class ProductSyncService {
   async handleSyncXmlFeedJob(jobConfiguration: JobConfiguration) {
     try {
       const { entityReferenceId, tenantId, config } = jobConfiguration;
-      const {
-        feed_url,
-        productMappingKeys,
-        responsePath,
-        discountInPercentage,
-      } = config;
+      const { feed_url, productMappingKeys, responsePath } = config;
 
       const data = await getProductsFromXML(
         feed_url,
         responsePath,
         productMappingKeys,
-        discountInPercentage,
       );
       await this.handleSyncProducts(
         tenantId,
@@ -160,12 +193,12 @@ export class ProductSyncService {
   }
 
   async handleSyncProductJob(jobConfiguration: JobConfiguration) {
-    await this.productsService.resetProductStockBySupplier(
-      jobConfiguration.tenantId,
-      jobConfiguration.entityReferenceId,
-    );
-
     try {
+      await this.productsService.resetProductStockBySupplier(
+        jobConfiguration.tenantId,
+        jobConfiguration.entityReferenceId,
+      );
+
       if (jobConfiguration.syncType === 'XmlFeed') {
         await this.handleSyncXmlFeedJob(jobConfiguration);
       }
@@ -181,5 +214,4 @@ export class ProductSyncService {
 
     return true;
   }
- 
 }
