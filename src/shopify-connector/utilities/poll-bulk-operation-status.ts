@@ -34,7 +34,7 @@ export const pollBulkOperationStatus = async (
       }
     }
 
-    if (status !== 'COMPLETED') {
+    if (status !== 'COMPLETED' && status !== 'CREATED') {
       throw new Error(`Bulk operation failed with status: ${status}`);
     }
 
