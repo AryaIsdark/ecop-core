@@ -22,19 +22,19 @@ export const pollBulkOperationStatus = async (
     let status = 'RUNNING';
     let resultUrl = null;
 
-    while (status === 'RUNNING') {
+    while (status === 'RUNNING' || status === 'CREATED') {
       const response = await shopify.graphql(query);
       const operation = response.node;
 
       status = operation.status;
       resultUrl = operation.url;
 
-      if (status === 'RUNNING') {
+      if (status === 'RUNNING' || status === 'CREATED') {
         await new Promise((resolve) => setTimeout(resolve, 5000)); // Poll every 5 seconds
       }
     }
 
-    if (status !== 'COMPLETED' && status !== 'CREATED') {
+    if (status !== 'COMPLETED') {
       throw new Error(`Bulk operation failed with status: ${status}`);
     }
 
